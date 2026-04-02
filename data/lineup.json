@@ -1,0 +1,1698 @@
+[
+  {
+    "day": "thursday",
+    "date": "2026-07-02",
+    "stages": [
+      {
+        "stageName": "Main Stage",
+        "artists": [
+          {
+            "id": "yong-yello",
+            "name": "Yong Yello",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "durationMinutes": 40,
+            "color": "yellow"
+          },
+          {
+            "id": "zwangere-guy",
+            "name": "Zwangere Guy",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "14:20",
+              "minutesFromMidnight": 860
+            },
+            "endTime": {
+              "display": "15:20",
+              "minutesFromMidnight": 920
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "elvis-costello-the-imposters-with-charlie-sexton",
+            "name": "Elvis Costello & The Imposters with Charlie Sexton",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "16:00",
+              "minutesFromMidnight": 960
+            },
+            "endTime": {
+              "display": "17:00",
+              "minutesFromMidnight": 1020
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "kasabian",
+            "name": "Kasabian",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "17:40",
+              "minutesFromMidnight": 1060
+            },
+            "endTime": {
+              "display": "18:40",
+              "minutesFromMidnight": 1120
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          },
+          {
+            "id": "the-lumineers",
+            "name": "The Lumineers",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "19:20",
+              "minutesFromMidnight": 1160
+            },
+            "endTime": {
+              "display": "20:20",
+              "minutesFromMidnight": 1220
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "the-war-on-drugs",
+            "name": "The War on Drugs",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "21:15",
+              "minutesFromMidnight": 1275
+            },
+            "endTime": {
+              "display": "22:30",
+              "minutesFromMidnight": 1350
+            },
+            "durationMinutes": 75,
+            "color": "yellow"
+          },
+          {
+            "id": "mumford-sons",
+            "name": "Mumford & Sons",
+            "day": "thursday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "23:30",
+              "minutesFromMidnight": 1410
+            },
+            "endTime": {
+              "display": "01:00",
+              "minutesFromMidnight": 1500
+            },
+            "durationMinutes": 90,
+            "color": "orange"
+          }
+        ]
+      },
+      {
+        "stageName": "The Barn",
+        "artists": [
+          {
+            "id": "balu-brigada",
+            "name": "Balu Brigada",
+            "day": "thursday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:30",
+              "minutesFromMidnight": 810
+            },
+            "durationMinutes": 30,
+            "color": "yellow"
+          },
+          {
+            "id": "all-them-witches",
+            "name": "All Them Witches",
+            "day": "thursday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "14:05",
+              "minutesFromMidnight": 845
+            },
+            "endTime": {
+              "display": "15:05",
+              "minutesFromMidnight": 905
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "the-vaccines",
+            "name": "The Vaccines",
+            "day": "thursday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "15:50",
+              "minutesFromMidnight": 950
+            },
+            "endTime": {
+              "display": "16:50",
+              "minutesFromMidnight": 1010
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "loyle-carner",
+            "name": "Loyle Carner",
+            "day": "thursday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "17:50",
+              "minutesFromMidnight": 1070
+            },
+            "endTime": {
+              "display": "18:50",
+              "minutesFromMidnight": 1130
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "jade",
+            "name": "JADE",
+            "day": "thursday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "19:50",
+              "minutesFromMidnight": 1190
+            },
+            "endTime": {
+              "display": "20:50",
+              "minutesFromMidnight": 1250
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "the-prodigy",
+            "name": "The Prodigy",
+            "day": "thursday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "21:50",
+              "minutesFromMidnight": 1310
+            },
+            "endTime": {
+              "display": "23:05",
+              "minutesFromMidnight": 1385
+            },
+            "durationMinutes": 75,
+            "color": "yellow"
+          }
+        ]
+      },
+      {
+        "stageName": "KluB C",
+        "artists": [
+          {
+            "id": "monza",
+            "name": "Monza",
+            "day": "thursday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "13:30",
+              "minutesFromMidnight": 810
+            },
+            "endTime": {
+              "display": "14:05",
+              "minutesFromMidnight": 845
+            },
+            "durationMinutes": 35,
+            "color": "orange"
+          },
+          {
+            "id": "bente",
+            "name": "Bente",
+            "day": "thursday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "15:05",
+              "minutesFromMidnight": 905
+            },
+            "endTime": {
+              "display": "15:50",
+              "minutesFromMidnight": 950
+            },
+            "durationMinutes": 45,
+            "color": "yellow"
+          },
+          {
+            "id": "yard-act",
+            "name": "Yard Act",
+            "day": "thursday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "16:50",
+              "minutesFromMidnight": 1010
+            },
+            "endTime": {
+              "display": "17:50",
+              "minutesFromMidnight": 1070
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "dylan-gossett",
+            "name": "Dylan Gossett",
+            "day": "thursday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "18:50",
+              "minutesFromMidnight": 1130
+            },
+            "endTime": {
+              "display": "19:50",
+              "minutesFromMidnight": 1190
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "tom-smith",
+            "name": "Tom Smith",
+            "day": "thursday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "20:50",
+              "minutesFromMidnight": 1250
+            },
+            "endTime": {
+              "display": "21:50",
+              "minutesFromMidnight": 1310
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "blood-incantation",
+            "name": "Blood Incantation",
+            "day": "thursday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "23:05",
+              "minutesFromMidnight": 1385
+            },
+            "endTime": {
+              "display": "00:20",
+              "minutesFromMidnight": 1460
+            },
+            "durationMinutes": 75,
+            "color": "orange"
+          }
+        ]
+      },
+      {
+        "stageName": "The Slope",
+        "artists": [
+          {
+            "id": "ben-ellis",
+            "name": "Ben Ellis",
+            "day": "thursday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "endTime": {
+              "display": "14:15",
+              "minutesFromMidnight": 855
+            },
+            "durationMinutes": 35,
+            "color": "orange"
+          },
+          {
+            "id": "basht",
+            "name": "Basht.",
+            "day": "thursday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "15:20",
+              "minutesFromMidnight": 920
+            },
+            "endTime": {
+              "display": "15:55",
+              "minutesFromMidnight": 955
+            },
+            "durationMinutes": 35,
+            "color": "pink"
+          },
+          {
+            "id": "la-lom",
+            "name": "LA LOM",
+            "day": "thursday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "17:00",
+              "minutesFromMidnight": 1020
+            },
+            "endTime": {
+              "display": "17:35",
+              "minutesFromMidnight": 1055
+            },
+            "durationMinutes": 35,
+            "color": "pink"
+          },
+          {
+            "id": "karen-dio",
+            "name": "Karen Dió",
+            "day": "thursday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "18:40",
+              "minutesFromMidnight": 1120
+            },
+            "endTime": {
+              "display": "19:15",
+              "minutesFromMidnight": 1155
+            },
+            "durationMinutes": 35,
+            "color": "green"
+          },
+          {
+            "id": "pup",
+            "name": "PUP",
+            "day": "thursday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "20:20",
+              "minutesFromMidnight": 1220
+            },
+            "endTime": {
+              "display": "21:10",
+              "minutesFromMidnight": 1270
+            },
+            "durationMinutes": 50,
+            "color": "pink"
+          },
+          {
+            "id": "midnight-generation",
+            "name": "Midnight Generation",
+            "day": "thursday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "22:30",
+              "minutesFromMidnight": 1350
+            },
+            "endTime": {
+              "display": "23:25",
+              "minutesFromMidnight": 1405
+            },
+            "durationMinutes": 55,
+            "color": "red"
+          }
+        ]
+      }
+    ],
+    "dayStartMinutes": 780,
+    "dayEndMinutes": 1500
+  },
+  {
+    "day": "friday",
+    "date": "2026-07-03",
+    "stages": [
+      {
+        "stageName": "Main Stage",
+        "artists": [
+          {
+            "id": "kingfishr",
+            "name": "Kingfishr",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "durationMinutes": 40,
+            "color": "yellow"
+          },
+          {
+            "id": "wolf-alice",
+            "name": "Wolf Alice",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "14:15",
+              "minutesFromMidnight": 855
+            },
+            "endTime": {
+              "display": "15:00",
+              "minutesFromMidnight": 900
+            },
+            "durationMinutes": 45,
+            "color": "pink"
+          },
+          {
+            "id": "the-last-dinner-party",
+            "name": "The Last Dinner Party",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "15:35",
+              "minutesFromMidnight": 935
+            },
+            "endTime": {
+              "display": "16:35",
+              "minutesFromMidnight": 995
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "royel-otis",
+            "name": "Royel Otis",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "17:15",
+              "minutesFromMidnight": 1035
+            },
+            "endTime": {
+              "display": "18:15",
+              "minutesFromMidnight": 1095
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          },
+          {
+            "id": "teddy-swims",
+            "name": "Teddy Swims",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "19:00",
+              "minutesFromMidnight": 1140
+            },
+            "endTime": {
+              "display": "20:00",
+              "minutesFromMidnight": 1200
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          },
+          {
+            "id": "lewis-capaldi",
+            "name": "Lewis Capaldi",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "21:00",
+              "minutesFromMidnight": 1260
+            },
+            "endTime": {
+              "display": "22:30",
+              "minutesFromMidnight": 1350
+            },
+            "durationMinutes": 90,
+            "color": "orange"
+          },
+          {
+            "id": "the-xx",
+            "name": "The xx",
+            "day": "friday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "23:30",
+              "minutesFromMidnight": 1410
+            },
+            "endTime": {
+              "display": "01:00",
+              "minutesFromMidnight": 1500
+            },
+            "durationMinutes": 90,
+            "color": "green"
+          }
+        ]
+      },
+      {
+        "stageName": "The Barn",
+        "artists": [
+          {
+            "id": "good-neighbours",
+            "name": "Good Neighbours",
+            "day": "friday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:45",
+              "minutesFromMidnight": 825
+            },
+            "durationMinutes": 45,
+            "color": "green"
+          },
+          {
+            "id": "social-distortion",
+            "name": "Social Distortion",
+            "day": "friday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "14:20",
+              "minutesFromMidnight": 860
+            },
+            "endTime": {
+              "display": "15:20",
+              "minutesFromMidnight": 920
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "viagra-boys",
+            "name": "Viagra Boys",
+            "day": "friday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "15:55",
+              "minutesFromMidnight": 955
+            },
+            "endTime": {
+              "display": "16:55",
+              "minutesFromMidnight": 1015
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "franz-ferdinand",
+            "name": "Franz Ferdinand",
+            "day": "friday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "17:45",
+              "minutesFromMidnight": 1065
+            },
+            "endTime": {
+              "display": "18:45",
+              "minutesFromMidnight": 1125
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "fka-twigs",
+            "name": "FKA twigs",
+            "day": "friday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "19:45",
+              "minutesFromMidnight": 1185
+            },
+            "endTime": {
+              "display": "21:00",
+              "minutesFromMidnight": 1260
+            },
+            "durationMinutes": 75,
+            "color": "green"
+          },
+          {
+            "id": "charlotte-de-witte",
+            "name": "Charlotte de Witte",
+            "day": "friday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "22:00",
+              "minutesFromMidnight": 1320
+            },
+            "endTime": {
+              "display": "23:15",
+              "minutesFromMidnight": 1395
+            },
+            "durationMinutes": 75,
+            "color": "red"
+          }
+        ]
+      },
+      {
+        "stageName": "KluB C",
+        "artists": [
+          {
+            "id": "ise",
+            "name": "ISE",
+            "day": "friday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "13:45",
+              "minutesFromMidnight": 825
+            },
+            "endTime": {
+              "display": "14:20",
+              "minutesFromMidnight": 860
+            },
+            "durationMinutes": 35,
+            "color": "yellow"
+          },
+          {
+            "id": "high-hi",
+            "name": "High Hi",
+            "day": "friday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "15:20",
+              "minutesFromMidnight": 920
+            },
+            "endTime": {
+              "display": "15:55",
+              "minutesFromMidnight": 955
+            },
+            "durationMinutes": 35,
+            "color": "red"
+          },
+          {
+            "id": "paris-paloma",
+            "name": "Paris Paloma",
+            "day": "friday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "16:55",
+              "minutesFromMidnight": 1015
+            },
+            "endTime": {
+              "display": "17:45",
+              "minutesFromMidnight": 1065
+            },
+            "durationMinutes": 50,
+            "color": "green"
+          },
+          {
+            "id": "kae-tempest",
+            "name": "Kae Tempest",
+            "day": "friday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "18:45",
+              "minutesFromMidnight": 1125
+            },
+            "endTime": {
+              "display": "19:45",
+              "minutesFromMidnight": 1185
+            },
+            "durationMinutes": 60,
+            "color": "red"
+          },
+          {
+            "id": "agnes-obel",
+            "name": "Agnes Obel",
+            "day": "friday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "21:00",
+              "minutesFromMidnight": 1260
+            },
+            "endTime": {
+              "display": "22:00",
+              "minutesFromMidnight": 1320
+            },
+            "durationMinutes": 60,
+            "color": "red"
+          },
+          {
+            "id": "lauren-spencer-smith",
+            "name": "Lauren Spencer Smith",
+            "day": "friday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "23:15",
+              "minutesFromMidnight": 1395
+            },
+            "endTime": {
+              "display": "00:15",
+              "minutesFromMidnight": 1455
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          }
+        ]
+      },
+      {
+        "stageName": "The Slope",
+        "artists": [
+          {
+            "id": "overpass",
+            "name": "overpass",
+            "day": "friday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "endTime": {
+              "display": "14:10",
+              "minutesFromMidnight": 850
+            },
+            "durationMinutes": 30,
+            "color": "pink"
+          },
+          {
+            "id": "cardinals",
+            "name": "Cardinals",
+            "day": "friday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "15:00",
+              "minutesFromMidnight": 900
+            },
+            "endTime": {
+              "display": "15:30",
+              "minutesFromMidnight": 930
+            },
+            "durationMinutes": 30,
+            "color": "red"
+          },
+          {
+            "id": "keo",
+            "name": "Keo",
+            "day": "friday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "16:35",
+              "minutesFromMidnight": 995
+            },
+            "endTime": {
+              "display": "17:10",
+              "minutesFromMidnight": 1030
+            },
+            "durationMinutes": 35,
+            "color": "pink"
+          },
+          {
+            "id": "scene-queen",
+            "name": "Scene Queen",
+            "day": "friday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "18:15",
+              "minutesFromMidnight": 1095
+            },
+            "endTime": {
+              "display": "18:55",
+              "minutesFromMidnight": 1135
+            },
+            "durationMinutes": 40,
+            "color": "orange"
+          },
+          {
+            "id": "radio-free-alice",
+            "name": "Radio Free Alice",
+            "day": "friday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "20:00",
+              "minutesFromMidnight": 1200
+            },
+            "endTime": {
+              "display": "20:55",
+              "minutesFromMidnight": 1255
+            },
+            "durationMinutes": 55,
+            "color": "red"
+          },
+          {
+            "id": "the-warning",
+            "name": "The Warning",
+            "day": "friday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "22:30",
+              "minutesFromMidnight": 1350
+            },
+            "endTime": {
+              "display": "23:25",
+              "minutesFromMidnight": 1405
+            },
+            "durationMinutes": 55,
+            "color": "red"
+          }
+        ]
+      }
+    ],
+    "dayStartMinutes": 780,
+    "dayEndMinutes": 1500
+  },
+  {
+    "day": "saturday",
+    "date": "2026-07-04",
+    "stages": [
+      {
+        "stageName": "Main Stage",
+        "artists": [
+          {
+            "id": "landmvrks",
+            "name": "Landmvrks",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "durationMinutes": 40,
+            "color": "pink"
+          },
+          {
+            "id": "palaye-royale",
+            "name": "Palaye Royale",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "14:10",
+              "minutesFromMidnight": 850
+            },
+            "endTime": {
+              "display": "14:55",
+              "minutesFromMidnight": 895
+            },
+            "durationMinutes": 45,
+            "color": "yellow"
+          },
+          {
+            "id": "kneecap",
+            "name": "Kneecap",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "15:30",
+              "minutesFromMidnight": 930
+            },
+            "endTime": {
+              "display": "16:30",
+              "minutesFromMidnight": 990
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          },
+          {
+            "id": "renee-rapp",
+            "name": "Reneé Rapp",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "17:10",
+              "minutesFromMidnight": 1030
+            },
+            "endTime": {
+              "display": "18:10",
+              "minutesFromMidnight": 1090
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "halsey",
+            "name": "Halsey",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "18:55",
+              "minutesFromMidnight": 1135
+            },
+            "endTime": {
+              "display": "19:55",
+              "minutesFromMidnight": 1195
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "gorillaz",
+            "name": "Gorillaz",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "20:55",
+              "minutesFromMidnight": 1255
+            },
+            "endTime": {
+              "display": "22:25",
+              "minutesFromMidnight": 1345
+            },
+            "durationMinutes": 90,
+            "color": "yellow"
+          },
+          {
+            "id": "twenty-one-pilots",
+            "name": "Twenty One Pilots",
+            "day": "saturday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "23:25",
+              "minutesFromMidnight": 1405
+            },
+            "endTime": {
+              "display": "01:00",
+              "minutesFromMidnight": 1500
+            },
+            "durationMinutes": 95,
+            "color": "yellow"
+          }
+        ]
+      },
+      {
+        "stageName": "The Barn",
+        "artists": [
+          {
+            "id": "harry-mack",
+            "name": "Harry Mack",
+            "day": "saturday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "durationMinutes": 40,
+            "color": "green"
+          },
+          {
+            "id": "dogstar",
+            "name": "Dogstar",
+            "day": "saturday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "14:25",
+              "minutesFromMidnight": 865
+            },
+            "endTime": {
+              "display": "15:15",
+              "minutesFromMidnight": 915
+            },
+            "durationMinutes": 50,
+            "color": "orange"
+          },
+          {
+            "id": "the-haunted-youth",
+            "name": "The Haunted Youth",
+            "day": "saturday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "16:00",
+              "minutesFromMidnight": 960
+            },
+            "endTime": {
+              "display": "17:00",
+              "minutesFromMidnight": 1020
+            },
+            "durationMinutes": 60,
+            "color": "red"
+          },
+          {
+            "id": "beirut",
+            "name": "Beirut",
+            "day": "saturday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "18:00",
+              "minutesFromMidnight": 1080
+            },
+            "endTime": {
+              "display": "19:00",
+              "minutesFromMidnight": 1140
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          },
+          {
+            "id": "matt-berninger",
+            "name": "Matt Berninger",
+            "day": "saturday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "20:00",
+              "minutesFromMidnight": 1200
+            },
+            "endTime": {
+              "display": "21:00",
+              "minutesFromMidnight": 1260
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "pixies",
+            "name": "Pixies",
+            "day": "saturday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "22:00",
+              "minutesFromMidnight": 1320
+            },
+            "endTime": {
+              "display": "23:15",
+              "minutesFromMidnight": 1395
+            },
+            "durationMinutes": 75,
+            "color": "pink"
+          }
+        ]
+      },
+      {
+        "stageName": "KluB C",
+        "artists": [
+          {
+            "id": "linka-moja",
+            "name": "Linka Moja",
+            "day": "saturday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "endTime": {
+              "display": "14:25",
+              "minutesFromMidnight": 865
+            },
+            "durationMinutes": 45,
+            "color": "yellow"
+          },
+          {
+            "id": "adrian-quesada-s-trio-asesino",
+            "name": "Adrian Quesada's Trio Asesino",
+            "day": "saturday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "15:15",
+              "minutesFromMidnight": 915
+            },
+            "endTime": {
+              "display": "16:00",
+              "minutesFromMidnight": 960
+            },
+            "durationMinutes": 45,
+            "color": "orange"
+          },
+          {
+            "id": "don-west",
+            "name": "Don West",
+            "day": "saturday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "17:00",
+              "minutesFromMidnight": 1020
+            },
+            "endTime": {
+              "display": "18:00",
+              "minutesFromMidnight": 1080
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "kokoroko",
+            "name": "Kokoroko",
+            "day": "saturday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "19:00",
+              "minutesFromMidnight": 1140
+            },
+            "endTime": {
+              "display": "20:00",
+              "minutesFromMidnight": 1200
+            },
+            "durationMinutes": 60,
+            "color": "red"
+          },
+          {
+            "id": "cmat",
+            "name": "CMAT",
+            "day": "saturday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "22:25",
+              "minutesFromMidnight": 1345
+            },
+            "endTime": {
+              "display": "23:25",
+              "minutesFromMidnight": 1405
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          }
+        ]
+      },
+      {
+        "stageName": "The Slope",
+        "artists": [
+          {
+            "id": "the-new-eves",
+            "name": "The New Eves",
+            "day": "saturday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "13:40",
+              "minutesFromMidnight": 820
+            },
+            "endTime": {
+              "display": "14:05",
+              "minutesFromMidnight": 845
+            },
+            "durationMinutes": 25,
+            "color": "orange"
+          },
+          {
+            "id": "man-woman-chainsaw",
+            "name": "Man/Woman/Chainsaw",
+            "day": "saturday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "14:55",
+              "minutesFromMidnight": 895
+            },
+            "endTime": {
+              "display": "15:25",
+              "minutesFromMidnight": 925
+            },
+            "durationMinutes": 30,
+            "color": "yellow"
+          },
+          {
+            "id": "florence-road",
+            "name": "Florence Road",
+            "day": "saturday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "16:30",
+              "minutesFromMidnight": 990
+            },
+            "endTime": {
+              "display": "17:05",
+              "minutesFromMidnight": 1025
+            },
+            "durationMinutes": 35,
+            "color": "green"
+          },
+          {
+            "id": "ecca-vandal",
+            "name": "Ecca Vandal",
+            "day": "saturday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "18:10",
+              "minutesFromMidnight": 1090
+            },
+            "endTime": {
+              "display": "18:50",
+              "minutesFromMidnight": 1130
+            },
+            "durationMinutes": 40,
+            "color": "pink"
+          },
+          {
+            "id": "voila",
+            "name": "VOILÀ",
+            "day": "saturday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "19:55",
+              "minutesFromMidnight": 1195
+            },
+            "endTime": {
+              "display": "20:50",
+              "minutesFromMidnight": 1250
+            },
+            "durationMinutes": 55,
+            "color": "orange"
+          },
+          {
+            "id": "the-reytons",
+            "name": "The Reytons",
+            "day": "saturday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "22:25",
+              "minutesFromMidnight": 1345
+            },
+            "endTime": {
+              "display": "23:20",
+              "minutesFromMidnight": 1400
+            },
+            "durationMinutes": 55,
+            "color": "pink"
+          }
+        ]
+      }
+    ],
+    "dayStartMinutes": 780,
+    "dayEndMinutes": 1500
+  },
+  {
+    "day": "sunday",
+    "date": "2026-07-05",
+    "stages": [
+      {
+        "stageName": "Main Stage",
+        "artists": [
+          {
+            "id": "kaat-van-stralen",
+            "name": "Kaat Van Stralen",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:35",
+              "minutesFromMidnight": 815
+            },
+            "durationMinutes": 35,
+            "color": "green"
+          },
+          {
+            "id": "bad-nerves",
+            "name": "Bad Nerves",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "14:05",
+              "minutesFromMidnight": 845
+            },
+            "endTime": {
+              "display": "14:45",
+              "minutesFromMidnight": 885
+            },
+            "durationMinutes": 40,
+            "color": "pink"
+          },
+          {
+            "id": "sons",
+            "name": "SONS",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "15:15",
+              "minutesFromMidnight": 915
+            },
+            "endTime": {
+              "display": "15:55",
+              "minutesFromMidnight": 955
+            },
+            "durationMinutes": 40,
+            "color": "green"
+          },
+          {
+            "id": "rise-against",
+            "name": "Rise Against",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "16:35",
+              "minutesFromMidnight": 995
+            },
+            "endTime": {
+              "display": "17:35",
+              "minutesFromMidnight": 1055
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "a-perfect-circle",
+            "name": "A Perfect Circle",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "18:20",
+              "minutesFromMidnight": 1100
+            },
+            "endTime": {
+              "display": "19:20",
+              "minutesFromMidnight": 1160
+            },
+            "durationMinutes": 60,
+            "color": "yellow"
+          },
+          {
+            "id": "moby",
+            "name": "Moby",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "20:10",
+              "minutesFromMidnight": 1210
+            },
+            "endTime": {
+              "display": "21:40",
+              "minutesFromMidnight": 1300
+            },
+            "durationMinutes": 90,
+            "color": "yellow"
+          },
+          {
+            "id": "the-cure",
+            "name": "The Cure",
+            "day": "sunday",
+            "stage": "Main Stage",
+            "startTime": {
+              "display": "22:30",
+              "minutesFromMidnight": 1350
+            },
+            "endTime": {
+              "display": "00:30",
+              "minutesFromMidnight": 1470
+            },
+            "durationMinutes": 120,
+            "color": "pink"
+          }
+        ]
+      },
+      {
+        "stageName": "The Barn",
+        "artists": [
+          {
+            "id": "darren-kiely",
+            "name": "Darren Kiely",
+            "day": "sunday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "13:00",
+              "minutesFromMidnight": 780
+            },
+            "endTime": {
+              "display": "13:30",
+              "minutesFromMidnight": 810
+            },
+            "durationMinutes": 30,
+            "color": "green"
+          },
+          {
+            "id": "sierra-ferrell",
+            "name": "Sierra Ferrell",
+            "day": "sunday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "14:00",
+              "minutesFromMidnight": 840
+            },
+            "endTime": {
+              "display": "14:50",
+              "minutesFromMidnight": 890
+            },
+            "durationMinutes": 50,
+            "color": "green"
+          },
+          {
+            "id": "cory-wong",
+            "name": "Cory Wong",
+            "day": "sunday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "15:30",
+              "minutesFromMidnight": 930
+            },
+            "endTime": {
+              "display": "16:30",
+              "minutesFromMidnight": 990
+            },
+            "durationMinutes": 60,
+            "color": "green"
+          },
+          {
+            "id": "mogwai",
+            "name": "Mogwai",
+            "day": "sunday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "17:10",
+              "minutesFromMidnight": 1030
+            },
+            "endTime": {
+              "display": "18:10",
+              "minutesFromMidnight": 1090
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "david-byrne",
+            "name": "David Byrne",
+            "day": "sunday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "19:10",
+              "minutesFromMidnight": 1150
+            },
+            "endTime": {
+              "display": "20:20",
+              "minutesFromMidnight": 1220
+            },
+            "durationMinutes": 70,
+            "color": "green"
+          },
+          {
+            "id": "paul-kalkbrenner",
+            "name": "Paul Kalkbrenner",
+            "day": "sunday",
+            "stage": "The Barn",
+            "startTime": {
+              "display": "21:20",
+              "minutesFromMidnight": 1280
+            },
+            "endTime": {
+              "display": "22:50",
+              "minutesFromMidnight": 1370
+            },
+            "durationMinutes": 90,
+            "color": "pink"
+          }
+        ]
+      },
+      {
+        "stageName": "KluB C",
+        "artists": [
+          {
+            "id": "tsar-b",
+            "name": "Tsar B",
+            "day": "sunday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "13:30",
+              "minutesFromMidnight": 810
+            },
+            "endTime": {
+              "display": "14:00",
+              "minutesFromMidnight": 840
+            },
+            "durationMinutes": 30,
+            "color": "green"
+          },
+          {
+            "id": "dressed-like-boys",
+            "name": "Dressed Like Boys",
+            "day": "sunday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "14:50",
+              "minutesFromMidnight": 890
+            },
+            "endTime": {
+              "display": "15:30",
+              "minutesFromMidnight": 930
+            },
+            "durationMinutes": 40,
+            "color": "pink"
+          },
+          {
+            "id": "jessie-murph",
+            "name": "Jessie Murph",
+            "day": "sunday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "16:30",
+              "minutesFromMidnight": 990
+            },
+            "endTime": {
+              "display": "17:10",
+              "minutesFromMidnight": 1030
+            },
+            "durationMinutes": 40,
+            "color": "red"
+          },
+          {
+            "id": "joy-crookes",
+            "name": "Joy Crookes",
+            "day": "sunday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "18:10",
+              "minutesFromMidnight": 1090
+            },
+            "endTime": {
+              "display": "19:10",
+              "minutesFromMidnight": 1150
+            },
+            "durationMinutes": 60,
+            "color": "pink"
+          },
+          {
+            "id": "ethel-cain",
+            "name": "Ethel Cain",
+            "day": "sunday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "20:20",
+              "minutesFromMidnight": 1220
+            },
+            "endTime": {
+              "display": "21:20",
+              "minutesFromMidnight": 1280
+            },
+            "durationMinutes": 60,
+            "color": "orange"
+          },
+          {
+            "id": "haevn",
+            "name": "HAEVN",
+            "day": "sunday",
+            "stage": "KluB C",
+            "startTime": {
+              "display": "22:50",
+              "minutesFromMidnight": 1370
+            },
+            "endTime": {
+              "display": "23:50",
+              "minutesFromMidnight": 1430
+            },
+            "durationMinutes": 60,
+            "color": "red"
+          }
+        ]
+      },
+      {
+        "stageName": "The Slope",
+        "artists": [
+          {
+            "id": "chezile",
+            "name": "Chezile",
+            "day": "sunday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "13:35",
+              "minutesFromMidnight": 815
+            },
+            "endTime": {
+              "display": "14:00",
+              "minutesFromMidnight": 840
+            },
+            "durationMinutes": 25,
+            "color": "green"
+          },
+          {
+            "id": "westside-cowboy",
+            "name": "Westside Cowboy",
+            "day": "sunday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "14:45",
+              "minutesFromMidnight": 885
+            },
+            "endTime": {
+              "display": "15:15",
+              "minutesFromMidnight": 915
+            },
+            "durationMinutes": 30,
+            "color": "pink"
+          },
+          {
+            "id": "newdad",
+            "name": "NewDad",
+            "day": "sunday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "15:55",
+              "minutesFromMidnight": 955
+            },
+            "endTime": {
+              "display": "16:30",
+              "minutesFromMidnight": 990
+            },
+            "durationMinutes": 35,
+            "color": "green"
+          },
+          {
+            "id": "last-train",
+            "name": "Last Train",
+            "day": "sunday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "17:35",
+              "minutesFromMidnight": 1055
+            },
+            "endTime": {
+              "display": "18:15",
+              "minutesFromMidnight": 1095
+            },
+            "durationMinutes": 40,
+            "color": "red"
+          },
+          {
+            "id": "house-of-protection",
+            "name": "House Of Protection",
+            "day": "sunday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "19:20",
+              "minutesFromMidnight": 1160
+            },
+            "endTime": {
+              "display": "20:05",
+              "minutesFromMidnight": 1205
+            },
+            "durationMinutes": 45,
+            "color": "green"
+          },
+          {
+            "id": "psychonaut",
+            "name": "Psychonaut",
+            "day": "sunday",
+            "stage": "The Slope",
+            "startTime": {
+              "display": "21:40",
+              "minutesFromMidnight": 1300
+            },
+            "endTime": {
+              "display": "22:25",
+              "minutesFromMidnight": 1345
+            },
+            "durationMinutes": 45,
+            "color": "green"
+          }
+        ]
+      }
+    ],
+    "dayStartMinutes": 780,
+    "dayEndMinutes": 1470
+  }
+]
