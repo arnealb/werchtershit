@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Artist, Day, LineupData } from '@/types/lineup';
 import { DAY_LABELS } from '@/types/lineup';
-import type { PlaylistPreviewData } from '@/types/spotify';
+import type { PlaylistPreviewData, SpotifyPlaylistSummary } from '@/types/spotify';
 import TimetableView from './timetable/TimetableView';
 import SelectedArtistsPanel from './SelectedArtistsPanel';
 import PlaylistPreview from './PlaylistPreview';
@@ -14,6 +14,13 @@ const DAYS: Day[] = ['thursday', 'friday', 'saturday', 'sunday'];
 interface SpotifyUser {
   id: string;
   displayName: string;
+}
+
+interface SaveResult {
+  mode: 'new' | 'existing';
+  addedTracks: number;
+  skippedTracks: number;
+  requestedTracks: number;
 }
 
 interface Props {
@@ -34,6 +41,11 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   const [maxTracksPerArtist, setMaxTracksPerArtist] = useState(5);
   const [isCreating, setIsCreating] = useState(false);
   const [createdUrl, setCreatedUrl] = useState<string | undefined>();
+  const [savedMode, setSavedMode] = useState<'new' | 'existing' | undefined>();
+  const [saveResult, setSaveResult] = useState<SaveResult | undefined>();
+  const [playlists, setPlaylists] = useState<SpotifyPlaylistSummary[]>([]);
+  const [playlistsLoading, setPlaylistsLoading] = useState(false);
+  const [playlistsError, setPlaylistsError] = useState<string | null>(null);
 
   const activeDaySchedule = lineup.find((d) => d.day === activeDay)!;
 
@@ -107,8 +119,32 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   const handlePreview = useCallback(async () => {
     await fetchPreview([...selectedIds], maxTracksPerArtist);
     setCreatedUrl(undefined);
+    setSavedMode(undefined);
+    setSaveResult(undefined);
     setShowPreview(true);
   }, [selectedIds, maxTracksPerArtist, fetchPreview]);
+
+  const fetchPlaylists = useCallback(async () => {
+    setPlaylistsLoading(true);
+    setPlaylistsError(null);
+    try {
+      const res = await fetch('/api/spotify/playlists');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to load playlists');
+      setPlaylists(data.playlists ?? []);
+    } catch (e) {
+      console.error('Playlists error:', e);
+      setPlaylists([]);
+      setPlaylistsError('Could not load existing playlists.');
+    } finally {
+      setPlaylistsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showPreview || !spotifyUser) return;
+    fetchPlaylists();
+  }, [fetchPlaylists, showPreview, spotifyUser]);
 
   // Re-fetch when slider changes while preview is open
   useEffect(() => {
@@ -117,7 +153,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxTracksPerArtist]);
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async (targetPlaylistId?: string) => {
     setIsCreating(true);
     try {
       const res = await fetch('/api/spotify/create', {
@@ -126,17 +162,26 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
         body: JSON.stringify({
           artistIds: [...selectedIds],
           maxTracksPerArtist,
+          targetPlaylistId,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setCreatedUrl(data.playlistUrl);
+      setSavedMode(data.mode ?? (targetPlaylistId ? 'existing' : 'new'));
+      setSaveResult({
+        mode: data.mode ?? (targetPlaylistId ? 'existing' : 'new'),
+        addedTracks: data.addedTracks ?? data.totalTracks ?? 0,
+        skippedTracks: data.skippedTracks ?? 0,
+        requestedTracks: data.requestedTracks ?? data.totalTracks ?? 0,
+      });
+      if (targetPlaylistId) fetchPlaylists();
     } catch (e) {
-      alert('Failed to create playlist: ' + String(e));
+      alert('Failed to save playlist: ' + String(e));
     } finally {
       setIsCreating(false);
     }
-  }, [selectedIds, maxTracksPerArtist]);
+  }, [fetchPlaylists, selectedIds, maxTracksPerArtist]);
 
   const handleDisconnect = async () => {
     await fetch('/api/spotify/me', { method: 'DELETE' });
@@ -244,6 +289,9 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
       {showPreview && preview && (
         <PlaylistPreview
           preview={preview}
+          playlists={playlists}
+          playlistsLoading={playlistsLoading}
+          playlistsError={playlistsError}
           maxTracksPerArtist={maxTracksPerArtist}
           onMaxTracksChange={setMaxTracksPerArtist}
           onConfirm={handleCreate}
@@ -253,6 +301,8 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
           }}
           isCreating={isCreating}
           createdUrl={createdUrl}
+          savedMode={savedMode}
+          saveResult={saveResult}
         />
       )}
 

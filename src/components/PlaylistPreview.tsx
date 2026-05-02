@@ -1,28 +1,61 @@
 'use client';
 
-import type { PlaylistPreviewData } from '@/types/spotify';
+import { useMemo, useState } from 'react';
+import type { PlaylistPreviewData, SpotifyPlaylistSummary } from '@/types/spotify';
 
 interface Props {
   preview: PlaylistPreviewData;
+  playlists: SpotifyPlaylistSummary[];
+  playlistsLoading: boolean;
+  playlistsError: string | null;
   maxTracksPerArtist: number;
   onMaxTracksChange: (n: number) => void;
-  onConfirm: () => void;
+  onConfirm: (targetPlaylistId?: string) => void;
   onCancel: () => void;
   isCreating: boolean;
   createdUrl?: string;
+  savedMode?: 'new' | 'existing';
+  saveResult?: {
+    mode: 'new' | 'existing';
+    addedTracks: number;
+    skippedTracks: number;
+    requestedTracks: number;
+  };
 }
 
 export default function PlaylistPreview({
   preview,
+  playlists,
+  playlistsLoading,
+  playlistsError,
   maxTracksPerArtist,
   onMaxTracksChange,
   onConfirm,
   onCancel,
   isCreating,
   createdUrl,
+  savedMode,
+  saveResult,
 }: Props) {
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState('');
   const matched = preview.matchedArtists.filter((a) => a.matched);
   const unmatched = preview.unmatchedArtists;
+  const canUseExisting = playlists.length > 0;
+  const selectedPlaylist = useMemo(
+    () => playlists.find((playlist) => playlist.id === selectedPlaylistId),
+    [playlists, selectedPlaylistId],
+  );
+
+  const handleConfirm = () => {
+    if (mode === 'existing') {
+      if (!selectedPlaylistId) return;
+      onConfirm(selectedPlaylistId);
+      return;
+    }
+
+    onConfirm();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -128,7 +161,17 @@ export default function PlaylistPreview({
         <div className="px-6 py-4 border-t border-gray-700">
           {createdUrl ? (
             <div className="text-center space-y-2">
-              <p className="text-sm text-green-400 font-semibold">✓ Playlist created!</p>
+              <p className="text-sm text-green-400 font-semibold">
+                ✓ Playlist {savedMode === 'existing' ? 'updated' : 'created'}!
+              </p>
+              {saveResult && (
+                <p className="text-xs text-gray-400">
+                  {saveResult.addedTracks} added
+                  {saveResult.skippedTracks > 0
+                    ? ` · ${saveResult.skippedTracks} already in playlist`
+                    : ''}
+                </p>
+              )}
               <a
                 href={createdUrl}
                 target="_blank"
@@ -139,20 +182,91 @@ export default function PlaylistPreview({
               </a>
             </div>
           ) : (
-            <div className="flex gap-3">
-              <button
-                onClick={onCancel}
-                className="flex-1 text-sm py-2.5 px-4 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onConfirm}
-                disabled={isCreating || preview.totalTracks === 0}
-                className="flex-1 text-sm font-bold py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white transition-colors"
-              >
-                {isCreating ? 'Creating…' : `Create Playlist (${preview.totalTracks} tracks)`}
-              </button>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMode('new')}
+                  className={[
+                    'text-xs font-semibold py-2 px-3 rounded-md border transition-colors',
+                    mode === 'new'
+                      ? 'bg-green-600 border-green-500 text-white'
+                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700',
+                  ].join(' ')}
+                >
+                  New playlist
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('existing');
+                    if (!selectedPlaylistId && playlists[0]) setSelectedPlaylistId(playlists[0].id);
+                  }}
+                  disabled={!canUseExisting || playlistsLoading}
+                  className={[
+                    'text-xs font-semibold py-2 px-3 rounded-md border transition-colors',
+                    mode === 'existing'
+                      ? 'bg-green-600 border-green-500 text-white'
+                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700',
+                    !canUseExisting || playlistsLoading ? 'opacity-50 cursor-not-allowed' : '',
+                  ].join(' ')}
+                >
+                  Existing playlist
+                </button>
+              </div>
+
+              {mode === 'existing' && (
+                <div className="space-y-2">
+                  <select
+                    value={selectedPlaylistId}
+                    onChange={(e) => setSelectedPlaylistId(e.target.value)}
+                    disabled={playlistsLoading || playlists.length === 0}
+                    className="w-full text-sm bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2"
+                  >
+                    <option value="">Choose playlist</option>
+                    {playlists.map((playlist) => (
+                      <option key={playlist.id} value={playlist.id}>
+                        {playlist.name} ({playlist.trackCount} tracks)
+                      </option>
+                    ))}
+                  </select>
+                  {playlistsLoading && (
+                    <p className="text-xs text-gray-500">Loading playlists...</p>
+                  )}
+                  {playlistsError && (
+                    <p className="text-xs text-yellow-500">{playlistsError}</p>
+                  )}
+                  {selectedPlaylist && (
+                    <p className="text-xs text-gray-500">
+                      Tracks will be appended to {selectedPlaylist.name}.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={onCancel}
+                  className="flex-1 text-sm py-2.5 px-4 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={
+                    isCreating ||
+                    preview.totalTracks === 0 ||
+                    (mode === 'existing' && !selectedPlaylistId)
+                  }
+                  className="flex-1 text-sm font-bold py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white transition-colors"
+                >
+                  {isCreating
+                    ? 'Saving...'
+                    : mode === 'existing'
+                      ? `Add ${preview.totalTracks} tracks`
+                      : `Create Playlist (${preview.totalTracks} tracks)`}
+                </button>
+              </div>
             </div>
           )}
         </div>

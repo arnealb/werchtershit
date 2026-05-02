@@ -11,8 +11,8 @@ interface SpotifyUser {
 interface SpotifyPlaylist {
   id: string;
   name: string;
-  tracks: { total: number };
-  public: boolean;
+  trackCount: number;
+  public: boolean | null;
 }
 
 export default function TestPage() {
@@ -46,7 +46,7 @@ export default function TestPage() {
       if (!res.ok) {
         setPlaylistError(JSON.stringify(data, null, 2));
       } else {
-        setPlaylists(data.items);
+        setPlaylists(data.playlists);
       }
     } catch (e) {
       setPlaylistError(String(e));
@@ -107,7 +107,7 @@ export default function TestPage() {
             <ul style={{ marginTop: 12, paddingLeft: 20 }}>
               {playlists.map((p) => (
                 <li key={p.id} style={{ marginBottom: 6 }}>
-                  <strong>{p.name}</strong> — {p.tracks?.total ?? '?'} tracks — {p.public ? 'public' : 'private'}
+                  <strong>{p.name}</strong> — {p.trackCount ?? '?'} tracks — {p.public ? 'public' : 'private'}
                   <br />
                   <small>ID: {p.id}</small>
                   {' '}

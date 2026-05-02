@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getValidTokens } from '@/lib/spotify';
+import { getEditablePlaylists, getValidTokens, SpotifyApiError } from '@/lib/spotify';
 
 export async function GET() {
   const tokens = await getValidTokens();
@@ -7,16 +7,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const res = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
-    headers: { Authorization: `Bearer ${tokens.accessToken}` },
-  });
+  try {
+    const playlists = await getEditablePlaylists(tokens.accessToken);
+    return NextResponse.json({ playlists });
+  } catch (err) {
+    if (err instanceof SpotifyApiError) {
+      console.error('[/api/spotify/playlists] Spotify API error', err.details);
+      return NextResponse.json({ error: err.message, spotify: err.details }, { status: err.details.status });
+    }
 
-  const body = await res.json();
-
-  if (!res.ok) {
-    console.error('[/api/spotify/playlists] Spotify error:', body);
-    return NextResponse.json({ error: body }, { status: res.status });
+    console.error('[/api/spotify/playlists] Error:', err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-
-  return NextResponse.json(body);
 }

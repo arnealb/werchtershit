@@ -10,6 +10,17 @@ export interface SpotifyUser {
   email: string;
 }
 
+export interface SpotifyPlaylistSummary {
+  id: string;
+  name: string;
+  url: string;
+  trackCount: number;
+  ownerName: string;
+  isOwner: boolean;
+  collaborative: boolean;
+  public: boolean | null;
+}
+
 export interface SpotifyArtist {
   id: string;
   name: string;

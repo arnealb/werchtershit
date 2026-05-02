@@ -1,4 +1,9 @@
-import type { SpotifyTokens, SpotifyTrack, SpotifyUser } from '@/types/spotify';
+import type {
+  SpotifyPlaylistSummary,
+  SpotifyTokens,
+  SpotifyTrack,
+  SpotifyUser,
+} from '@/types/spotify';
 import { cookies } from 'next/headers';
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID!;
@@ -6,6 +11,8 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET!;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI!;
 
 export const SPOTIFY_SCOPES = [
+  'playlist-read-private',
+  'playlist-read-collaborative',
   'playlist-modify-public',
   'playlist-modify-private',
   'user-read-private',
@@ -216,6 +223,121 @@ export async function searchTracksByArtist(
   }));
 }
 
+export async function getEditablePlaylists(token: string): Promise<SpotifyPlaylistSummary[]> {
+  const user = await getSpotifyUser(token);
+  const playlists: SpotifyPlaylistSummary[] = [];
+  const seenPlaylistIds = new Set<string>();
+  let path: string | null = '/me/playlists?limit=50';
+
+  while (path) {
+    const res = await spotifyFetch(path, token);
+    if (!res.ok) {
+      throw await readSpotifyError('Failed to fetch playlists', 'GET', path, res);
+    }
+
+    const data = await res.json();
+    for (const playlist of data.items ?? []) {
+      const isOwner = playlist.owner?.id === user.id;
+      const collaborative = Boolean(playlist.collaborative);
+      if (!isOwner || seenPlaylistIds.has(playlist.id)) continue;
+      seenPlaylistIds.add(playlist.id);
+
+      playlists.push({
+        id: playlist.id,
+        name: playlist.name,
+        url: playlist.external_urls?.spotify ?? `https://open.spotify.com/playlist/${playlist.id}`,
+        trackCount: playlist.tracks?.total ?? 0,
+        ownerName: playlist.owner?.display_name ?? playlist.owner?.id ?? '',
+        isOwner,
+        collaborative,
+        public: playlist.public ?? null,
+      });
+    }
+
+    path = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+  }
+
+  return playlists;
+}
+
+export async function addTracksToPlaylist(
+  playlistId: string,
+  trackUris: string[],
+  token: string,
+): Promise<{ addedCount: number }> {
+  const uniqueTrackUris = [...new Set(trackUris)];
+  for (let i = 0; i < uniqueTrackUris.length; i += 100) {
+    const batch = uniqueTrackUris.slice(i, i + 100);
+    const addPath = `/playlists/${playlistId}/items`;
+    const addRes = await spotifyFetch(addPath, token, {
+      method: 'POST',
+      body: JSON.stringify({ uris: batch }),
+    });
+    if (!addRes.ok) {
+      throw await readSpotifyError('Failed to add tracks', 'POST', addPath, addRes);
+    }
+  }
+
+  return { addedCount: uniqueTrackUris.length };
+}
+
+export async function getPlaylistTrackUris(
+  playlistId: string,
+  token: string,
+): Promise<{ uris: Set<string>; ids: Set<string> }> {
+  const uris = new Set<string>();
+  const ids = new Set<string>();
+  let path: string | null = `/playlists/${playlistId}/items?limit=100&additional_types=track`;
+
+  while (path) {
+    const res = await spotifyFetch(path, token);
+    if (!res.ok) {
+      throw await readSpotifyError('Failed to fetch playlist tracks', 'GET', path, res);
+    }
+
+    const data = await res.json();
+    for (const item of data.items ?? []) {
+      const track = item.track ?? item.item;
+      if (!track) continue;
+      if (track.uri) uris.add(track.uri);
+      if (track.id) ids.add(track.id);
+    }
+
+    path = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+  }
+
+  return { uris, ids };
+}
+
+function trackIdFromUri(uri: string): string | null {
+  const parts = uri.split(':');
+  if (parts.length !== 3 || parts[0] !== 'spotify' || parts[1] !== 'track') return null;
+  return parts[2] || null;
+}
+
+export async function addMissingTracksToPlaylist(
+  playlistId: string,
+  trackUris: string[],
+  token: string,
+): Promise<{ addedCount: number; skippedCount: number; requestedCount: number }> {
+  const uniqueTrackUris = [...new Set(trackUris)];
+  const existing = await getPlaylistTrackUris(playlistId, token);
+  const missingUris = uniqueTrackUris.filter((uri) => {
+    const trackId = trackIdFromUri(uri);
+    return !existing.uris.has(uri) && (!trackId || !existing.ids.has(trackId));
+  });
+
+  if (missingUris.length > 0) {
+    await addTracksToPlaylist(playlistId, missingUris, token);
+  }
+
+  return {
+    addedCount: missingUris.length,
+    skippedCount: uniqueTrackUris.length - missingUris.length,
+    requestedCount: uniqueTrackUris.length,
+  };
+}
+
 export async function createPlaylist(
   name: string,
   description: string,
@@ -234,17 +356,7 @@ export async function createPlaylist(
   const playlist = await createRes.json();
 
   // 2. Add tracks in batches of 100
-  for (let i = 0; i < trackUris.length; i += 100) {
-    const batch = trackUris.slice(i, i + 100);
-    const addPath = `/playlists/${playlist.id}/items`;
-    const addRes = await spotifyFetch(addPath, token, {
-      method: 'POST',
-      body: JSON.stringify({ uris: batch }),
-    });
-    if (!addRes.ok) {
-      throw await readSpotifyError('Failed to add tracks', 'POST', addPath, addRes);
-    }
-  }
+  await addTracksToPlaylist(playlist.id, trackUris, token);
 
   return { id: playlist.id, url: playlist.external_urls?.spotify ?? '' };
 }
