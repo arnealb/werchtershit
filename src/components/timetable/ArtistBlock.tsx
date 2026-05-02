@@ -5,7 +5,6 @@ import {
   COLOR_STYLES,
   PX_PER_MINUTE,
   ROW_HEIGHT,
-  STAGE_LABEL_WIDTH,
 } from './constants';
 
 interface Props {

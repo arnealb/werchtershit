@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidTokens, getRWPlaylistTracks } from '@/lib/spotify';
-import { matchArtistsToTracks } from '@/lib/matcher';
+import { getValidTokens, searchTracksByArtist } from '@/lib/spotify';
 import { getLineupData } from '@/lib/lineup';
+import type { MatchedArtist } from '@/types/spotify';
 import type { Artist } from '@/types/lineup';
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Get lineup data to resolve artist names
     const lineup = await getLineupData();
     const allArtists: Artist[] = lineup.flatMap((day) =>
       day.stages.flatMap((stage) => stage.artists),
@@ -32,21 +31,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No matching artists found in lineup' }, { status: 400 });
     }
 
-    // Fetch official RW playlist
-    const tracks = await getRWPlaylistTracks(tokens.accessToken);
+    // Search tracks per artist in parallel
+    const results = await Promise.allSettled(
+      selectedArtists.map((artist) =>
+        searchTracksByArtist(artist.name, tokens.accessToken, maxTracksPerArtist),
+      ),
+    );
 
-    // Match
-    const result = matchArtistsToTracks(selectedArtists, tracks, maxTracksPerArtist);
+    const matchedArtists: MatchedArtist[] = selectedArtists.map((artist, i) => {
+      const result = results[i];
+      const tracks = result.status === 'fulfilled' ? result.value : [];
+      return {
+        festivalArtistId: artist.id,
+        festivalArtistName: artist.name,
+        matched: tracks.length > 0,
+        tracks,
+      };
+    });
 
-    // Determine selected days for description
+    const unmatchedArtists = matchedArtists
+      .filter((a) => !a.matched)
+      .map((a) => ({ id: a.festivalArtistId, name: a.festivalArtistName }));
+
+    const totalTracks = matchedArtists.reduce((sum, a) => sum + a.tracks.length, 0);
     const selectedDays = [...new Set(selectedArtists.map((a) => a.day))];
 
-    return NextResponse.json({
-      matchedArtists: result.matchedArtists,
-      unmatchedArtists: result.unmatchedArtists,
-      totalTracks: result.totalTracks,
-      selectedDays,
-    });
+    return NextResponse.json({ matchedArtists, unmatchedArtists, totalTracks, selectedDays });
   } catch (err) {
     console.error('[/api/spotify/playlist] Error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });

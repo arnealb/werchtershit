@@ -81,7 +81,7 @@ export default function PlaylistPreview({
                       {artist.matchedSpotifyName &&
                         artist.matchedSpotifyName !== artist.festivalArtistName && (
                           <span className="text-xs text-gray-500">
-                            → matched as "{artist.matchedSpotifyName}"
+                            → matched as &quot;{artist.matchedSpotifyName}&quot;
                           </span>
                         )}
                       <span className="text-xs text-gray-600 ml-auto">
@@ -118,7 +118,7 @@ export default function PlaylistPreview({
                 ))}
               </div>
               <p className="text-xs text-gray-600 mt-2">
-                These artists weren't found in the official Rock Werchter Spotify playlist.
+                No Spotify tracks were found for these artists.
               </p>
             </section>
           )}

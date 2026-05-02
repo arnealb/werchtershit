@@ -3,7 +3,6 @@
 import type { Artist, StageSchedule } from '@/types/lineup';
 import ArtistBlock from './ArtistBlock';
 import {
-  HOUR_TICK_WIDTH,
   PX_PER_MINUTE,
   ROW_HEIGHT,
   STAGE_LABEL_WIDTH,

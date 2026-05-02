@@ -101,7 +101,7 @@ export default function SelectedArtistsPanel({
           </button>
         )}
         <p className="text-[10px] text-gray-700 text-center">
-          from the official RW 2026 Spotify playlist
+          searches Spotify tracks for selected artists
         </p>
       </div>
     </div>

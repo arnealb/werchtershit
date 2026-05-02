@@ -3,7 +3,6 @@
 import type { Artist, DaySchedule } from '@/types/lineup';
 import StageRow from './StageRow';
 import TimeAxis from './TimeAxis';
-import { STAGE_LABEL_WIDTH } from './constants';
 
 interface Props {
   daySchedule: DaySchedule;

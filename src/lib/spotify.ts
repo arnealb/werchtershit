@@ -4,16 +4,29 @@ import { cookies } from 'next/headers';
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID!;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET!;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI!;
-const RW_PLAYLIST_ID = '63I9phrPUwQMKKBIjj52mU';
 
 export const SPOTIFY_SCOPES = [
-  'playlist-read-public',
-  'playlist-read-private',
   'playlist-modify-public',
   'playlist-modify-private',
   'user-read-private',
   'user-read-email',
 ].join(' ');
+
+export class SpotifyApiError extends Error {
+  constructor(
+    message: string,
+    public readonly details: {
+      status: number;
+      method: string;
+      path: string;
+      body: string;
+      headers: Record<string, string | null>;
+    },
+  ) {
+    super(message);
+    this.name = 'SpotifyApiError';
+  }
+}
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
@@ -21,9 +34,10 @@ export function buildAuthUrl(state: string): string {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: SPOTIFY_CLIENT_ID,
-    scope: SPOTIFY_SCOPES,
     redirect_uri: SPOTIFY_REDIRECT_URI,
     state,
+    scope: SPOTIFY_SCOPES,
+    show_dialog: 'true',
   });
   return `https://accounts.spotify.com/authorize?${params}`;
 }
@@ -77,6 +91,13 @@ export async function refreshAccessToken(refreshToken: string): Promise<SpotifyT
   };
 }
 
+const TOKEN_COOKIE_OPTS = {
+  httpOnly: true,
+  path: '/',
+  sameSite: 'lax' as const,
+  maxAge: 60 * 60 * 24 * 30,
+};
+
 /** Read tokens from cookies, refresh if needed. Returns null if not authenticated. */
 export async function getValidTokens(): Promise<SpotifyTokens | null> {
   const cookieStore = await cookies();
@@ -90,7 +111,16 @@ export async function getValidTokens(): Promise<SpotifyTokens | null> {
   // Refresh 5 minutes early
   if (Date.now() > expiresAt - 5 * 60 * 1000) {
     try {
-      return await refreshAccessToken(refreshToken);
+      const newTokens = await refreshAccessToken(refreshToken);
+      // Persist refreshed tokens — works in Route Handlers, silently fails in RSC (that's fine)
+      try {
+        cookieStore.set('sp_access_token', newTokens.accessToken, TOKEN_COOKIE_OPTS);
+        cookieStore.set('sp_refresh_token', newTokens.refreshToken, TOKEN_COOKIE_OPTS);
+        cookieStore.set('sp_expires_at', String(newTokens.expiresAt), TOKEN_COOKIE_OPTS);
+      } catch {
+        // RSC render context — cookies can't be written here, next request will retry
+      }
+      return newTokens;
     } catch {
       return null;
     }
@@ -102,15 +132,43 @@ export async function getValidTokens(): Promise<SpotifyTokens | null> {
 // ─── API calls ───────────────────────────────────────────────────────────────
 
 async function spotifyFetch(path: string, token: string, opts?: RequestInit): Promise<Response> {
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+  const method = opts?.method?.toUpperCase() ?? 'GET';
+  const hasBody = method === 'POST' || method === 'PUT' || method === 'PATCH';
+  return fetch(`https://api.spotify.com/v1${path}`, {
     ...opts,
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       ...(opts?.headers ?? {}),
     },
   });
-  return res;
+}
+
+function getDebugHeaders(res: Response): Record<string, string | null> {
+  return {
+    'www-authenticate': res.headers.get('www-authenticate'),
+    'retry-after': res.headers.get('retry-after'),
+    'spotify-request-id': res.headers.get('spotify-request-id'),
+    'x-spotify-request-id': res.headers.get('x-spotify-request-id'),
+    'x-request-id': res.headers.get('x-request-id'),
+    'content-type': res.headers.get('content-type'),
+  };
+}
+
+async function readSpotifyError(
+  action: string,
+  method: string,
+  path: string,
+  res: Response,
+): Promise<SpotifyApiError> {
+  const body = await res.text();
+  return new SpotifyApiError(`${action}: ${res.status} ${body}`, {
+    status: res.status,
+    method,
+    path,
+    body,
+    headers: getDebugHeaders(res),
+  });
 }
 
 export async function getSpotifyUser(token: string): Promise<SpotifyUser> {
@@ -124,74 +182,68 @@ export async function getSpotifyUser(token: string): Promise<SpotifyUser> {
   };
 }
 
-/** Fetch ALL tracks from a playlist, handling pagination */
-export async function getPlaylistTracks(
-  playlistId: string,
+/** Search Spotify for tracks by a specific artist name, returns up to `limit` tracks. */
+export async function searchTracksByArtist(
+  artistName: string,
   token: string,
+  limit = 5,
 ): Promise<SpotifyTrack[]> {
-  const tracks: SpotifyTrack[] = [];
-  let url: string | null = `/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,uri,name,duration_ms,preview_url,artists(id,name)))`;
-
-  while (url) {
-    const res = await spotifyFetch(url, token);
-    if (!res.ok) throw new Error(`Failed to fetch playlist: ${res.status}`);
-    const data = await res.json();
-
-    for (const item of data.items ?? []) {
-      const track = item.track;
-      if (!track || !track.id) continue;
-      tracks.push({
-        id: track.id,
-        uri: track.uri,
-        name: track.name,
-        artists: (track.artists ?? []).map((a: { id: string; name: string }) => ({
-          id: a.id,
-          name: a.name,
-        })),
-        primaryArtist: track.artists?.[0]?.name ?? '',
-        durationMs: track.duration_ms,
-        previewUrl: track.preview_url ?? null,
-      });
-    }
-
-    // next is a full URL like https://api.spotify.com/v1/playlists/...
-    if (data.next) {
-      url = data.next.replace('https://api.spotify.com/v1', '');
-    } else {
-      url = null;
-    }
+  const params = new URLSearchParams({
+    q: `artist:${artistName}`,
+    type: 'track',
+    limit: String(Math.min(limit, 50)),
+  });
+  const res = await spotifyFetch(`/search?${params}`, token);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Search failed for "${artistName}": ${res.status} — ${body}`);
   }
-
-  return tracks;
-}
-
-export async function getRWPlaylistTracks(token: string): Promise<SpotifyTrack[]> {
-  return getPlaylistTracks(RW_PLAYLIST_ID, token);
+  const data = await res.json();
+  return (data.tracks?.items ?? []).map((track: {
+    id: string;
+    uri: string;
+    name: string;
+    artists: { id: string; name: string }[];
+    duration_ms: number;
+  }) => ({
+    id: track.id,
+    uri: track.uri,
+    name: track.name,
+    artists: track.artists.map((a) => ({ id: a.id, name: a.name })),
+    primaryArtist: track.artists[0]?.name ?? '',
+    durationMs: track.duration_ms,
+    previewUrl: null,
+  }));
 }
 
 export async function createPlaylist(
-  userId: string,
   name: string,
   description: string,
   trackUris: string[],
   token: string,
 ): Promise<{ id: string; url: string }> {
   // 1. Create playlist
-  const createRes = await spotifyFetch(`/users/${userId}/playlists`, token, {
+  const createPath = '/me/playlists';
+  const createRes = await spotifyFetch(createPath, token, {
     method: 'POST',
     body: JSON.stringify({ name, description, public: false }),
   });
-  if (!createRes.ok) throw new Error(`Failed to create playlist: ${createRes.status}`);
+  if (!createRes.ok) {
+    throw await readSpotifyError('Failed to create playlist', 'POST', createPath, createRes);
+  }
   const playlist = await createRes.json();
 
   // 2. Add tracks in batches of 100
   for (let i = 0; i < trackUris.length; i += 100) {
     const batch = trackUris.slice(i, i + 100);
-    const addRes = await spotifyFetch(`/playlists/${playlist.id}/tracks`, token, {
+    const addPath = `/playlists/${playlist.id}/items`;
+    const addRes = await spotifyFetch(addPath, token, {
       method: 'POST',
       body: JSON.stringify({ uris: batch }),
     });
-    if (!addRes.ok) throw new Error(`Failed to add tracks: ${addRes.status}`);
+    if (!addRes.ok) {
+      throw await readSpotifyError('Failed to add tracks', 'POST', addPath, addRes);
+    }
   }
 
   return { id: playlist.id, url: playlist.external_urls?.spotify ?? '' };

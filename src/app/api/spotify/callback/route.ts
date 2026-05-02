@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCodeForTokens } from '@/lib/spotify';
 
+function appUrl(path: string): URL {
+  const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+  if (!redirectUri) {
+    throw new Error('SPOTIFY_REDIRECT_URI is not configured');
+  }
+
+  return new URL(path, new URL(redirectUri).origin);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
@@ -8,22 +17,22 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
 
   if (error) {
-    return NextResponse.redirect(new URL(`/planner?error=${encodeURIComponent(error)}`, request.url));
+    return NextResponse.redirect(appUrl(`/planner?error=${encodeURIComponent(error)}`));
   }
 
   // Validate CSRF state
   const storedState = request.cookies.get('sp_oauth_state')?.value;
   if (!state || state !== storedState) {
-    return NextResponse.redirect(new URL('/planner?error=state_mismatch', request.url));
+    return NextResponse.redirect(appUrl('/planner?error=state_mismatch'));
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/planner?error=no_code', request.url));
+    return NextResponse.redirect(appUrl('/planner?error=no_code'));
   }
 
   try {
     const tokens = await exchangeCodeForTokens(code);
-    const response = NextResponse.redirect(new URL('/planner?spotify=connected', request.url));
+    const response = NextResponse.redirect(appUrl('/planner?spotify=connected'));
 
     const cookieOpts = {
       httpOnly: true,
@@ -40,6 +49,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (err) {
     console.error('[/api/spotify/callback] Error:', err);
-    return NextResponse.redirect(new URL('/planner?error=token_exchange_failed', request.url));
+    return NextResponse.redirect(appUrl('/planner?error=token_exchange_failed'));
   }
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Artist, Day, LineupData } from '@/types/lineup';
-import { DAY_DATES, DAY_LABELS } from '@/types/lineup';
+import { DAY_LABELS } from '@/types/lineup';
 import type { PlaylistPreviewData } from '@/types/spotify';
 import TimetableView from './timetable/TimetableView';
 import SelectedArtistsPanel from './SelectedArtistsPanel';

@@ -51,7 +51,7 @@ export default function DebugPanel({ preview, lineupLoaded, artistCount }: Props
                     <div key={a.festivalArtistId} className="mb-1">
                       <span className="text-green-400">✓ {a.festivalArtistName}</span>
                       {a.matchedSpotifyName !== a.festivalArtistName && (
-                        <span className="text-gray-600"> → "{a.matchedSpotifyName}"</span>
+                        <span className="text-gray-600"> → &quot;{a.matchedSpotifyName}&quot;</span>
                       )}
                       <span className="text-gray-600"> ({a.tracks.length} tracks)</span>
                     </div>
@@ -74,7 +74,7 @@ export default function DebugPanel({ preview, lineupLoaded, artistCount }: Props
 
           {!preview && (
             <p className="text-gray-600">
-              Select artists and click "Preview & Create Playlist" to see matching results.
+              Select artists and click &quot;Preview & Create Playlist&quot; to see matching results.
             </p>
           )}
         </div>

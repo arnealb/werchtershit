@@ -20,7 +20,7 @@
               "minutesFromMidnight": 820
             },
             "durationMinutes": 40,
-            "color": "yellow"
+            "color": "orange"
           },
           {
             "id": "zwangere-guy",
@@ -36,7 +36,7 @@
               "minutesFromMidnight": 920
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "elvis-costello-the-imposters-with-charlie-sexton",
@@ -52,7 +52,7 @@
               "minutesFromMidnight": 1020
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "green"
           },
           {
             "id": "kasabian",
@@ -68,7 +68,7 @@
               "minutesFromMidnight": 1120
             },
             "durationMinutes": 60,
-            "color": "green"
+            "color": "red"
           },
           {
             "id": "the-lumineers",
@@ -84,7 +84,7 @@
               "minutesFromMidnight": 1220
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "red"
           },
           {
             "id": "the-war-on-drugs",
@@ -116,7 +116,7 @@
               "minutesFromMidnight": 1500
             },
             "durationMinutes": 90,
-            "color": "orange"
+            "color": "yellow"
           }
         ]
       },
@@ -137,7 +137,7 @@
               "minutesFromMidnight": 810
             },
             "durationMinutes": 30,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "all-them-witches",
@@ -153,7 +153,7 @@
               "minutesFromMidnight": 905
             },
             "durationMinutes": 60,
-            "color": "orange"
+            "color": "yellow"
           },
           {
             "id": "the-vaccines",
@@ -169,7 +169,7 @@
               "minutesFromMidnight": 1010
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "red"
           },
           {
             "id": "loyle-carner",
@@ -185,7 +185,7 @@
               "minutesFromMidnight": 1130
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "jade",
@@ -201,7 +201,7 @@
               "minutesFromMidnight": 1250
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "orange"
           },
           {
             "id": "the-prodigy",
@@ -217,7 +217,7 @@
               "minutesFromMidnight": 1385
             },
             "durationMinutes": 75,
-            "color": "yellow"
+            "color": "pink"
           }
         ]
       },
@@ -238,7 +238,7 @@
               "minutesFromMidnight": 845
             },
             "durationMinutes": 35,
-            "color": "orange"
+            "color": "green"
           },
           {
             "id": "bente",
@@ -254,7 +254,7 @@
               "minutesFromMidnight": 950
             },
             "durationMinutes": 45,
-            "color": "yellow"
+            "color": "orange"
           },
           {
             "id": "yard-act",
@@ -270,7 +270,7 @@
               "minutesFromMidnight": 1070
             },
             "durationMinutes": 60,
-            "color": "orange"
+            "color": "yellow"
           },
           {
             "id": "dylan-gossett",
@@ -286,7 +286,7 @@
               "minutesFromMidnight": 1190
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "tom-smith",
@@ -318,7 +318,7 @@
               "minutesFromMidnight": 1460
             },
             "durationMinutes": 75,
-            "color": "orange"
+            "color": "red"
           }
         ]
       },
@@ -339,7 +339,7 @@
               "minutesFromMidnight": 855
             },
             "durationMinutes": 35,
-            "color": "orange"
+            "color": "green"
           },
           {
             "id": "basht",
@@ -355,7 +355,7 @@
               "minutesFromMidnight": 955
             },
             "durationMinutes": 35,
-            "color": "pink"
+            "color": "yellow"
           },
           {
             "id": "la-lom",
@@ -387,7 +387,7 @@
               "minutesFromMidnight": 1155
             },
             "durationMinutes": 35,
-            "color": "green"
+            "color": "red"
           },
           {
             "id": "pup",
@@ -403,7 +403,7 @@
               "minutesFromMidnight": 1270
             },
             "durationMinutes": 50,
-            "color": "pink"
+            "color": "green"
           },
           {
             "id": "midnight-generation",
@@ -419,7 +419,7 @@
               "minutesFromMidnight": 1405
             },
             "durationMinutes": 55,
-            "color": "red"
+            "color": "green"
           }
         ]
       }
@@ -448,7 +448,7 @@
               "minutesFromMidnight": 820
             },
             "durationMinutes": 40,
-            "color": "yellow"
+            "color": "red"
           },
           {
             "id": "wolf-alice",
@@ -464,7 +464,7 @@
               "minutesFromMidnight": 900
             },
             "durationMinutes": 45,
-            "color": "pink"
+            "color": "orange"
           },
           {
             "id": "the-last-dinner-party",
@@ -496,7 +496,7 @@
               "minutesFromMidnight": 1095
             },
             "durationMinutes": 60,
-            "color": "green"
+            "color": "orange"
           },
           {
             "id": "teddy-swims",
@@ -512,7 +512,7 @@
               "minutesFromMidnight": 1200
             },
             "durationMinutes": 60,
-            "color": "green"
+            "color": "red"
           },
           {
             "id": "lewis-capaldi",
@@ -528,7 +528,7 @@
               "minutesFromMidnight": 1350
             },
             "durationMinutes": 90,
-            "color": "orange"
+            "color": "pink"
           },
           {
             "id": "the-xx",
@@ -544,7 +544,7 @@
               "minutesFromMidnight": 1500
             },
             "durationMinutes": 90,
-            "color": "green"
+            "color": "red"
           }
         ]
       },
@@ -565,7 +565,7 @@
               "minutesFromMidnight": 825
             },
             "durationMinutes": 45,
-            "color": "green"
+            "color": "orange"
           },
           {
             "id": "social-distortion",
@@ -581,7 +581,7 @@
               "minutesFromMidnight": 920
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "orange"
           },
           {
             "id": "viagra-boys",
@@ -597,7 +597,7 @@
               "minutesFromMidnight": 1015
             },
             "durationMinutes": 60,
-            "color": "orange"
+            "color": "green"
           },
           {
             "id": "franz-ferdinand",
@@ -613,7 +613,7 @@
               "minutesFromMidnight": 1125
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "fka-twigs",
@@ -629,7 +629,7 @@
               "minutesFromMidnight": 1260
             },
             "durationMinutes": 75,
-            "color": "green"
+            "color": "yellow"
           },
           {
             "id": "charlotte-de-witte",
@@ -645,7 +645,7 @@
               "minutesFromMidnight": 1395
             },
             "durationMinutes": 75,
-            "color": "red"
+            "color": "yellow"
           }
         ]
       },
@@ -666,7 +666,7 @@
               "minutesFromMidnight": 860
             },
             "durationMinutes": 35,
-            "color": "yellow"
+            "color": "orange"
           },
           {
             "id": "high-hi",
@@ -682,7 +682,7 @@
               "minutesFromMidnight": 955
             },
             "durationMinutes": 35,
-            "color": "red"
+            "color": "pink"
           },
           {
             "id": "paris-paloma",
@@ -698,7 +698,7 @@
               "minutesFromMidnight": 1065
             },
             "durationMinutes": 50,
-            "color": "green"
+            "color": "orange"
           },
           {
             "id": "kae-tempest",
@@ -714,7 +714,7 @@
               "minutesFromMidnight": 1185
             },
             "durationMinutes": 60,
-            "color": "red"
+            "color": "pink"
           },
           {
             "id": "agnes-obel",
@@ -730,7 +730,7 @@
               "minutesFromMidnight": 1320
             },
             "durationMinutes": 60,
-            "color": "red"
+            "color": "orange"
           },
           {
             "id": "lauren-spencer-smith",
@@ -746,7 +746,7 @@
               "minutesFromMidnight": 1455
             },
             "durationMinutes": 60,
-            "color": "green"
+            "color": "orange"
           }
         ]
       },
@@ -783,7 +783,7 @@
               "minutesFromMidnight": 930
             },
             "durationMinutes": 30,
-            "color": "red"
+            "color": "orange"
           },
           {
             "id": "keo",
@@ -799,7 +799,7 @@
               "minutesFromMidnight": 1030
             },
             "durationMinutes": 35,
-            "color": "pink"
+            "color": "red"
           },
           {
             "id": "scene-queen",
@@ -815,7 +815,7 @@
               "minutesFromMidnight": 1135
             },
             "durationMinutes": 40,
-            "color": "orange"
+            "color": "pink"
           },
           {
             "id": "radio-free-alice",
@@ -831,7 +831,7 @@
               "minutesFromMidnight": 1255
             },
             "durationMinutes": 55,
-            "color": "red"
+            "color": "yellow"
           },
           {
             "id": "the-warning",
@@ -847,7 +847,7 @@
               "minutesFromMidnight": 1405
             },
             "durationMinutes": 55,
-            "color": "red"
+            "color": "yellow"
           }
         ]
       }
@@ -892,7 +892,7 @@
               "minutesFromMidnight": 895
             },
             "durationMinutes": 45,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "kneecap",
@@ -908,7 +908,7 @@
               "minutesFromMidnight": 990
             },
             "durationMinutes": 60,
-            "color": "green"
+            "color": "red"
           },
           {
             "id": "renee-rapp",
@@ -924,7 +924,7 @@
               "minutesFromMidnight": 1090
             },
             "durationMinutes": 60,
-            "color": "orange"
+            "color": "yellow"
           },
           {
             "id": "halsey",
@@ -940,7 +940,7 @@
               "minutesFromMidnight": 1195
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "red"
           },
           {
             "id": "gorillaz",
@@ -956,7 +956,7 @@
               "minutesFromMidnight": 1345
             },
             "durationMinutes": 90,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "twenty-one-pilots",
@@ -972,7 +972,7 @@
               "minutesFromMidnight": 1500
             },
             "durationMinutes": 95,
-            "color": "yellow"
+            "color": "green"
           }
         ]
       },
@@ -1009,7 +1009,7 @@
               "minutesFromMidnight": 915
             },
             "durationMinutes": 50,
-            "color": "orange"
+            "color": "yellow"
           },
           {
             "id": "the-haunted-youth",
@@ -1025,7 +1025,7 @@
               "minutesFromMidnight": 1020
             },
             "durationMinutes": 60,
-            "color": "red"
+            "color": "orange"
           },
           {
             "id": "beirut",
@@ -1057,7 +1057,7 @@
               "minutesFromMidnight": 1260
             },
             "durationMinutes": 60,
-            "color": "orange"
+            "color": "red"
           },
           {
             "id": "pixies",
@@ -1073,7 +1073,7 @@
               "minutesFromMidnight": 1395
             },
             "durationMinutes": 75,
-            "color": "pink"
+            "color": "green"
           }
         ]
       },
@@ -1094,7 +1094,7 @@
               "minutesFromMidnight": 865
             },
             "durationMinutes": 45,
-            "color": "yellow"
+            "color": "red"
           },
           {
             "id": "adrian-quesada-s-trio-asesino",
@@ -1110,7 +1110,7 @@
               "minutesFromMidnight": 960
             },
             "durationMinutes": 45,
-            "color": "orange"
+            "color": "pink"
           },
           {
             "id": "don-west",
@@ -1126,7 +1126,7 @@
               "minutesFromMidnight": 1080
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "orange"
           },
           {
             "id": "kokoroko",
@@ -1158,7 +1158,7 @@
               "minutesFromMidnight": 1405
             },
             "durationMinutes": 60,
-            "color": "orange"
+            "color": "pink"
           }
         ]
       },
@@ -1179,7 +1179,7 @@
               "minutesFromMidnight": 845
             },
             "durationMinutes": 25,
-            "color": "orange"
+            "color": "pink"
           },
           {
             "id": "man-woman-chainsaw",
@@ -1195,7 +1195,7 @@
               "minutesFromMidnight": 925
             },
             "durationMinutes": 30,
-            "color": "yellow"
+            "color": "green"
           },
           {
             "id": "florence-road",
@@ -1211,7 +1211,7 @@
               "minutesFromMidnight": 1025
             },
             "durationMinutes": 35,
-            "color": "green"
+            "color": "yellow"
           },
           {
             "id": "ecca-vandal",
@@ -1227,7 +1227,7 @@
               "minutesFromMidnight": 1130
             },
             "durationMinutes": 40,
-            "color": "pink"
+            "color": "green"
           },
           {
             "id": "voila",
@@ -1243,7 +1243,7 @@
               "minutesFromMidnight": 1250
             },
             "durationMinutes": 55,
-            "color": "orange"
+            "color": "red"
           },
           {
             "id": "the-reytons",
@@ -1259,7 +1259,7 @@
               "minutesFromMidnight": 1400
             },
             "durationMinutes": 55,
-            "color": "pink"
+            "color": "yellow"
           }
         ]
       }
@@ -1288,7 +1288,7 @@
               "minutesFromMidnight": 815
             },
             "durationMinutes": 35,
-            "color": "green"
+            "color": "orange"
           },
           {
             "id": "bad-nerves",
@@ -1304,7 +1304,7 @@
               "minutesFromMidnight": 885
             },
             "durationMinutes": 40,
-            "color": "pink"
+            "color": "yellow"
           },
           {
             "id": "sons",
@@ -1336,7 +1336,7 @@
               "minutesFromMidnight": 1055
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "red"
           },
           {
             "id": "a-perfect-circle",
@@ -1352,7 +1352,7 @@
               "minutesFromMidnight": 1160
             },
             "durationMinutes": 60,
-            "color": "yellow"
+            "color": "pink"
           },
           {
             "id": "moby",
@@ -1368,7 +1368,7 @@
               "minutesFromMidnight": 1300
             },
             "durationMinutes": 90,
-            "color": "yellow"
+            "color": "green"
           },
           {
             "id": "the-cure",
@@ -1384,7 +1384,7 @@
               "minutesFromMidnight": 1470
             },
             "durationMinutes": 120,
-            "color": "pink"
+            "color": "red"
           }
         ]
       },
@@ -1405,7 +1405,7 @@
               "minutesFromMidnight": 810
             },
             "durationMinutes": 30,
-            "color": "green"
+            "color": "yellow"
           },
           {
             "id": "sierra-ferrell",
@@ -1421,7 +1421,7 @@
               "minutesFromMidnight": 890
             },
             "durationMinutes": 50,
-            "color": "green"
+            "color": "yellow"
           },
           {
             "id": "cory-wong",
@@ -1437,7 +1437,7 @@
               "minutesFromMidnight": 990
             },
             "durationMinutes": 60,
-            "color": "green"
+            "color": "red"
           },
           {
             "id": "mogwai",
@@ -1453,7 +1453,7 @@
               "minutesFromMidnight": 1090
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "green"
           },
           {
             "id": "david-byrne",
@@ -1469,7 +1469,7 @@
               "minutesFromMidnight": 1220
             },
             "durationMinutes": 70,
-            "color": "green"
+            "color": "yellow"
           },
           {
             "id": "paul-kalkbrenner",
@@ -1485,7 +1485,7 @@
               "minutesFromMidnight": 1370
             },
             "durationMinutes": 90,
-            "color": "pink"
+            "color": "orange"
           }
         ]
       },
@@ -1522,7 +1522,7 @@
               "minutesFromMidnight": 930
             },
             "durationMinutes": 40,
-            "color": "pink"
+            "color": "green"
           },
           {
             "id": "jessie-murph",
@@ -1538,7 +1538,7 @@
               "minutesFromMidnight": 1030
             },
             "durationMinutes": 40,
-            "color": "red"
+            "color": "green"
           },
           {
             "id": "joy-crookes",
@@ -1554,7 +1554,7 @@
               "minutesFromMidnight": 1150
             },
             "durationMinutes": 60,
-            "color": "pink"
+            "color": "orange"
           },
           {
             "id": "ethel-cain",
@@ -1623,7 +1623,7 @@
               "minutesFromMidnight": 915
             },
             "durationMinutes": 30,
-            "color": "pink"
+            "color": "red"
           },
           {
             "id": "newdad",
@@ -1639,7 +1639,7 @@
               "minutesFromMidnight": 990
             },
             "durationMinutes": 35,
-            "color": "green"
+            "color": "yellow"
           },
           {
             "id": "last-train",
@@ -1655,7 +1655,7 @@
               "minutesFromMidnight": 1095
             },
             "durationMinutes": 40,
-            "color": "red"
+            "color": "yellow"
           },
           {
             "id": "house-of-protection",
@@ -1671,7 +1671,7 @@
               "minutesFromMidnight": 1205
             },
             "durationMinutes": 45,
-            "color": "green"
+            "color": "red"
           },
           {
             "id": "psychonaut",
@@ -1687,7 +1687,7 @@
               "minutesFromMidnight": 1345
             },
             "durationMinutes": 45,
-            "color": "green"
+            "color": "orange"
           }
         ]
       }
