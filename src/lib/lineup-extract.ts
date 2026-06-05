@@ -3,6 +3,7 @@
  * web search for events by name. Shared by the /api/events/* routes.
  */
 import type { Artist, DaySchedule, LineupData } from '@/types/lineup';
+import { activeProvider, callOpenAI, generateStructuredJson, groundedSearchText } from './llm';
 
 export interface ExtractedArtist {
   name: string;
@@ -29,10 +30,10 @@ export interface EventCandidate {
   url: string;
 }
 
-const OPENAI_MODEL = () => process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 // Timetable extraction is rare but precision-critical (day/stage/time
-// association) — use a stronger model there
-const EXTRACT_MODEL = () => process.env.OPENAI_EXTRACT_MODEL ?? 'gpt-4o';
+// association) — on OpenAI use a stronger model; Gemini Flash handles it well
+const extractModel = () =>
+  activeProvider() === 'openai' ? process.env.OPENAI_EXTRACT_MODEL ?? 'gpt-4o' : undefined;
 
 const EXTRACTION_SCHEMA = {
   type: 'object',
@@ -91,34 +92,6 @@ const EXTRACTION_INSTRUCTIONS = [
   'Do not invent artists that are not in the source.',
 ].join(' ');
 
-async function callOpenAI(body: Record<string, unknown>): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
-
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`OpenAI request failed: ${response.status} ${await response.text()}`);
-  }
-
-  const data = await response.json();
-  if (data.output_text) return data.output_text;
-  for (const item of data.output ?? []) {
-    for (const content of item.content ?? []) {
-      if ((content.type === 'output_text' || content.type === 'text') && content.text) {
-        return content.text;
-      }
-    }
-  }
-  throw new Error('OpenAI response did not contain output text');
-}
-
 function parseExtracted(json: string): ExtractedEvent {
   const parsed = JSON.parse(json) as ExtractedEvent;
   if (!parsed || typeof parsed.name !== 'string' || !Array.isArray(parsed.days)) {
@@ -127,46 +100,29 @@ function parseExtracted(json: string): ExtractedEvent {
   return parsed;
 }
 
-const extractionFormat = {
-  format: {
-    type: 'json_schema',
-    name: 'event_timetable',
-    strict: true,
-    schema: EXTRACTION_SCHEMA,
-  },
-};
-
 export async function extractEventFromText(pageText: string, hint?: string): Promise<ExtractedEvent> {
-  const output = await callOpenAI({
-    model: EXTRACT_MODEL(),
+  const output = await generateStructuredJson({
     instructions: EXTRACTION_INSTRUCTIONS,
     input: [
       hint ? `Event hint: ${hint}` : '',
       'Extract the timetable from this page content:',
       pageText.slice(0, 60_000),
     ].join('\n\n'),
-    text: extractionFormat,
+    schema: EXTRACTION_SCHEMA,
+    schemaName: 'event_timetable',
+    model: extractModel(),
   });
   return parseExtracted(output);
 }
 
 export async function extractEventFromImage(imageDataUrl: string, hint?: string): Promise<ExtractedEvent> {
-  const output = await callOpenAI({
-    model: EXTRACT_MODEL(),
+  const output = await generateStructuredJson({
     instructions: EXTRACTION_INSTRUCTIONS,
-    input: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'input_text',
-            text: `Extract the full timetable from this poster/screenshot.${hint ? ` Event hint: ${hint}` : ''}`,
-          },
-          { type: 'input_image', image_url: imageDataUrl },
-        ],
-      },
-    ],
-    text: extractionFormat,
+    input: `Extract the full timetable from this poster/screenshot.${hint ? ` Event hint: ${hint}` : ''}`,
+    imageDataUrl,
+    schema: EXTRACTION_SCHEMA,
+    schemaName: 'event_timetable',
+    model: extractModel(),
   });
   return parseExtracted(output);
 }
@@ -193,26 +149,50 @@ const SEARCH_SCHEMA = {
   },
 } as const;
 
+const SEARCH_INSTRUCTIONS = [
+  'You help users find music festivals and concerts.',
+  'Search the web for events matching the query and return up to 5 candidates.',
+  'Prefer official festival/venue pages with lineup or timetable info as the url.',
+  'datesText is a short human-readable date range (e.g. "3–5 juli 2026").',
+].join(' ');
+
 export async function searchEventCandidates(query: string): Promise<EventCandidate[]> {
-  const output = await callOpenAI({
-    model: OPENAI_MODEL(),
-    tools: [{ type: 'web_search' }],
-    instructions: [
-      'You help users find music festivals and concerts.',
-      'Search the web for events matching the query and return up to 5 candidates.',
-      'Prefer official festival/venue pages with lineup or timetable info as the url.',
-      'datesText is a short human-readable date range (e.g. "3–5 juli 2026").',
-    ].join(' '),
-    input: `Find the music festival or concert: "${query}"`,
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'event_candidates',
-        strict: true,
-        schema: SEARCH_SCHEMA,
+  let output: string;
+
+  if (activeProvider() === 'gemini') {
+    // Gemini can't combine Google Search grounding with JSON mode, so:
+    // step 1 grounded answer → step 2 structured parse
+    const grounded = await groundedSearchText(
+      [
+        `Search the web for the music festival or concert: "${query}".`,
+        'List up to 5 matching events. For each give: official name, location,',
+        'date range, and the URL of the official page with the lineup or timetable.',
+        'Include full URLs.',
+      ].join(' '),
+    );
+    output = await generateStructuredJson({
+      instructions: SEARCH_INSTRUCTIONS,
+      input: `Convert this search summary into structured candidates:\n\n${grounded}`,
+      schema: SEARCH_SCHEMA,
+      schemaName: 'event_candidates',
+    });
+  } else {
+    output = await callOpenAI({
+      model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+      tools: [{ type: 'web_search' }],
+      instructions: SEARCH_INSTRUCTIONS,
+      input: `Find the music festival or concert: "${query}"`,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'event_candidates',
+          strict: true,
+          schema: SEARCH_SCHEMA,
+        },
       },
-    },
-  });
+    });
+  }
+
   const parsed = JSON.parse(output) as { candidates?: EventCandidate[] };
   return (parsed.candidates ?? []).slice(0, 5);
 }

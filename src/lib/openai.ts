@@ -1,4 +1,5 @@
 import type { SpotifyTrackCandidate } from '@/types/spotify';
+import { activeModel, activeProvider, generateStructuredJson } from './llm';
 
 interface SmartPrepInput {
   artists: {
@@ -24,25 +25,36 @@ interface SmartPrepResponse {
   selections: SmartPrepSelection[];
 }
 
-function extractOutputText(response: {
-  output_text?: string;
-  output?: {
-    type?: string;
-    content?: { type?: string; text?: string }[];
-  }[];
-}): string {
-  if (response.output_text) return response.output_text;
-
-  for (const item of response.output ?? []) {
-    for (const content of item.content ?? []) {
-      if ((content.type === 'output_text' || content.type === 'text') && content.text) {
-        return content.text;
-      }
-    }
-  }
-
-  throw new Error('OpenAI response did not contain output text');
-}
+const SMART_PREP_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['selections'],
+  properties: {
+    selections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['festivalArtistId', 'tracks'],
+        properties: {
+          festivalArtistId: { type: 'string' },
+          tracks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['uri', 'reason'],
+              properties: {
+                uri: { type: 'string' },
+                reason: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
 
 function isSmartPrepResponse(value: unknown): value is SmartPrepResponse {
   if (!value || typeof value !== 'object') return false;
@@ -65,11 +77,6 @@ function isSmartPrepResponse(value: unknown): value is SmartPrepResponse {
 }
 
 export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartPrepResponse> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
   const candidateUris = new Set(
     input.artists.flatMap((artist) => artist.candidates.map((track) => track.uri)),
   );
@@ -94,84 +101,38 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
     })),
   };
 
-  console.info('[openai] Ranking smart prep candidates', {
-    model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+  console.info('[llm] Ranking smart prep candidates', {
+    provider: activeProvider(),
+    model: activeModel(),
     artistCount: compactInput.artists.length,
     candidateCount: compactInput.artists.reduce((sum, artist) => sum + artist.candidates.length, 0),
     budgets: compactInput.artists.map((artist) => `${artist.name}:${artist.maxTracks}`),
   });
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
-      instructions: [
-        'You curate preparation playlists for Rock Werchter festival visitors.',
-        'Choose the songs that a casual listener should know before seeing each selected artist live.',
-        'Strongest signal: candidates with a recentLivePlayCount and the "live_setlist" source were ACTUALLY played at the artist\'s recent concerts — prioritize these.',
-        'Then prefer live staples, recognizable hits, popular songs, and recent singles/album tracks.',
-        'Aim for a representative mix across the artist\'s career: include the classics, not only recent work.',
-        'For each artist return EXACTLY maxTracks tracks when enough candidates exist — never fewer. Only when the candidate list itself is smaller, return all candidates. Order best-first.',
-        'Do not invent songs. Only select track URIs from the provided candidate lists.',
-        'Avoid tracks marked alreadyInPlaylist unless every good candidate is already covered.',
-        'Write each reason in Dutch (Flemish-friendly), one short casual sentence.',
-      ].join(' '),
-      input: JSON.stringify(compactInput),
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'smart_prep_recommendations',
-          strict: true,
-          schema: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['selections'],
-            properties: {
-              selections: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  required: ['festivalArtistId', 'tracks'],
-                  properties: {
-                    festivalArtistId: { type: 'string' },
-                    tracks: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        additionalProperties: false,
-                        required: ['uri', 'reason'],
-                        properties: {
-                          uri: { type: 'string' },
-                          reason: { type: 'string' },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    }),
+  const output = await generateStructuredJson({
+    instructions: [
+      'You curate preparation playlists for Rock Werchter festival visitors.',
+      'Choose the songs that a casual listener should know before seeing each selected artist live.',
+      'Strongest signal: candidates with a recentLivePlayCount and the "live_setlist" source were ACTUALLY played at the artist\'s recent concerts — prioritize these.',
+      'Then prefer live staples, recognizable hits, popular songs, and recent singles/album tracks.',
+      'Aim for a representative mix across the artist\'s career: include the classics, not only recent work.',
+      'For each artist return EXACTLY maxTracks tracks when enough candidates exist — never fewer. Only when the candidate list itself is smaller, return all candidates. Order best-first.',
+      'Do not invent songs. Only select track URIs from the provided candidate lists.',
+      'Avoid tracks marked alreadyInPlaylist unless every good candidate is already covered.',
+      'Write each reason in Dutch (Flemish-friendly), one short casual sentence.',
+    ].join(' '),
+    input: JSON.stringify(compactInput),
+    schema: SMART_PREP_SCHEMA,
+    schemaName: 'smart_prep_recommendations',
   });
 
-  if (!response.ok) {
-    throw new Error(`OpenAI request failed: ${response.status} ${await response.text()}`);
-  }
-
-  const parsedJson = JSON.parse(extractOutputText(await response.json())) as unknown;
+  const parsedJson = JSON.parse(output) as unknown;
   if (!isSmartPrepResponse(parsedJson)) {
-    throw new Error('OpenAI response did not match smart prep schema');
+    throw new Error('LLM response did not match smart prep schema');
   }
 
   const parsed = parsedJson;
-  console.info('[openai] Received smart prep ranking', {
+  console.info('[llm] Received smart prep ranking', {
     selectionCount: parsed.selections.length,
     selectedTrackCount: parsed.selections.reduce((sum, selection) => sum + selection.tracks.length, 0),
   });
