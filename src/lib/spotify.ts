@@ -37,6 +37,34 @@ export class SpotifyApiError extends Error {
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
+// App-level token (client credentials) for public data like artist images —
+// works without a logged-in user
+let appToken: { token: string; expiresAt: number } | null = null;
+
+export async function getAppAccessToken(): Promise<string> {
+  if (appToken && Date.now() < appToken.expiresAt - 60_000) {
+    return appToken.token;
+  }
+
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`,
+    },
+    body: new URLSearchParams({ grant_type: 'client_credentials' }),
+  });
+  if (!res.ok) {
+    throw new Error(`App token request failed: ${res.status} ${await res.text()}`);
+  }
+  const data = await res.json();
+  appToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return appToken.token;
+}
+
 export function buildAuthUrl(state: string): string {
   const params = new URLSearchParams({
     response_type: 'code',
@@ -262,7 +290,10 @@ export function spotifyTrackFromApi(track: {
   };
 }
 
-export async function searchSpotifyArtist(artistName: string, token: string): Promise<{ id: string; name: string } | null> {
+export async function searchSpotifyArtist(
+  artistName: string,
+  token: string,
+): Promise<{ id: string; name: string; imageUrl: string | null } | null> {
   const params = new URLSearchParams({
     q: artistName,
     type: 'artist',
@@ -276,14 +307,19 @@ export async function searchSpotifyArtist(artistName: string, token: string): Pr
   }
 
   const data = await res.json();
-  const artists = data.artists?.items ?? [];
+  const artists: { id: string; name: string; images?: { url: string }[] }[] =
+    data.artists?.items ?? [];
   const normalizedName = normalizeName(artistName);
-  return (
-    artists.find((artist: { name: string }) => normalizeName(artist.name) === normalizedName) ??
-    artists.find((artist: { name: string }) => normalizeName(artist.name).includes(normalizedName)) ??
-    artists.find((artist: { name: string }) => normalizedName.includes(normalizeName(artist.name))) ??
-    null
-  );
+  const match =
+    artists.find((artist) => normalizeName(artist.name) === normalizedName) ??
+    artists.find((artist) => normalizeName(artist.name).includes(normalizedName)) ??
+    artists.find((artist) => normalizedName.includes(normalizeName(artist.name))) ??
+    null;
+  if (!match) return null;
+
+  // images[] is largest-first; the middle size (~320px) is ideal for cards
+  const imageUrl = match.images?.[1]?.url ?? match.images?.[0]?.url ?? null;
+  return { id: match.id, name: match.name, imageUrl };
 }
 
 export async function getArtistTopTracks(artistId: string, token: string): Promise<SpotifyTrack[]> {
