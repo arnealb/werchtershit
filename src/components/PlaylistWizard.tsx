@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import type { Artist } from '@/types/lineup';
 import type { PlaylistPreviewData, SpotifyPlaylistSummary } from '@/types/spotify';
 
@@ -19,6 +20,30 @@ interface Props {
   playlistsLoading: boolean;
   onClose: () => void;
   onSaved: () => void;
+}
+
+function PlaylistCover({ playlist, size }: { playlist: SpotifyPlaylistSummary; size: number }) {
+  if (!playlist.imageUrl) {
+    return (
+      <div
+        className="flex shrink-0 items-center justify-center rounded-md bg-ember/15 text-sm"
+        style={{ width: size, height: size }}
+      >
+        🎵
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={playlist.imageUrl}
+      alt=""
+      width={size}
+      height={size}
+      className="shrink-0 rounded-md object-cover"
+      style={{ width: size, height: size }}
+      unoptimized
+    />
+  );
 }
 
 const BUILD_MESSAGES = [
@@ -41,6 +66,7 @@ export default function PlaylistWizard({
   const [tracksPerArtist, setTracksPerArtist] = useState(5);
   const [target, setTarget] = useState<'new' | 'existing'>('new');
   const [targetPlaylistId, setTargetPlaylistId] = useState('');
+  const [playlistQuery, setPlaylistQuery] = useState('');
   const [preview, setPreview] = useState<PlaylistPreviewData | null>(null);
   const [removedUris, setRemovedUris] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +86,17 @@ export default function PlaylistWizard({
   }, [step]);
 
   const artistIds = useMemo(() => selectedArtists.map((a) => a.id), [selectedArtists]);
+
+  const filteredPlaylists = useMemo(() => {
+    const query = playlistQuery.trim().toLowerCase();
+    if (!query) return playlists;
+    return playlists.filter((playlist) => playlist.name.toLowerCase().includes(query));
+  }, [playlists, playlistQuery]);
+
+  const selectedPlaylist = useMemo(
+    () => playlists.find((playlist) => playlist.id === targetPlaylistId) ?? null,
+    [playlists, targetPlaylistId],
+  );
 
   const keptTracksByArtist = useMemo(() => {
     if (!preview) return [];
@@ -257,10 +294,7 @@ export default function PlaylistWizard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setTarget('existing');
-                      if (!targetPlaylistId && playlists[0]) setTargetPlaylistId(playlists[0].id);
-                    }}
+                    onClick={() => setTarget('existing')}
                     disabled={playlistsLoading || playlists.length === 0}
                     className={[
                       'rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all disabled:opacity-40',
@@ -273,22 +307,62 @@ export default function PlaylistWizard({
                   </button>
                 </div>
                 {target === 'existing' && (
-                  <select
-                    value={targetPlaylistId}
-                    onChange={(e) => setTargetPlaylistId(e.target.value)}
-                    className="mt-2 w-full text-sm bg-card border border-line text-cream rounded-xl px-3 py-2.5"
-                  >
-                    {playlists.map((playlist) => (
-                      <option key={playlist.id} value={playlist.id}>
-                        {playlist.name} ({playlist.trackCount} nummers)
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {target === 'existing' && (
-                  <p className="text-[11px] text-fog-dim mt-2">
-                    Nummers die er al in staan worden automatisch overgeslagen.
-                  </p>
+                  <div className="mt-2 space-y-2">
+                    {selectedPlaylist && (
+                      <div className="flex items-center gap-2.5 rounded-xl border border-spotify/60 bg-spotify/10 px-3 py-2">
+                        <PlaylistCover playlist={selectedPlaylist} size={36} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-cream truncate">{selectedPlaylist.name}</p>
+                          <p className="text-[10px] text-fog">{selectedPlaylist.trackCount} nummers · gekozen ✓</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setTargetPlaylistId('')}
+                          className="text-[11px] font-semibold text-fog hover:text-cream shrink-0"
+                        >
+                          Wijzig
+                        </button>
+                      </div>
+                    )}
+
+                    {!selectedPlaylist && (
+                      <>
+                        <input
+                          type="search"
+                          value={playlistQuery}
+                          onChange={(e) => setPlaylistQuery(e.target.value)}
+                          placeholder={`Zoek in je ${playlists.length} playlists…`}
+                          className="w-full rounded-xl border border-line bg-card px-3.5 py-2.5 text-sm text-cream placeholder:text-fog-dim focus:border-ember focus:outline-none"
+                        />
+                        <div className="max-h-60 overflow-y-auto rounded-xl border border-line divide-y divide-line">
+                          {filteredPlaylists.length === 0 ? (
+                            <p className="px-3 py-6 text-center text-xs text-fog-dim">
+                              Geen playlists gevonden voor “{playlistQuery}”
+                            </p>
+                          ) : (
+                            filteredPlaylists.map((playlist) => (
+                              <button
+                                key={playlist.id}
+                                type="button"
+                                onClick={() => setTargetPlaylistId(playlist.id)}
+                                className="flex w-full items-center gap-2.5 bg-card px-3 py-2 text-left hover:bg-card-hi transition-colors"
+                              >
+                                <PlaylistCover playlist={playlist} size={36} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-cream truncate">{playlist.name}</p>
+                                  <p className="text-[10px] text-fog-dim">{playlist.trackCount} nummers</p>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    <p className="text-[11px] text-fog-dim">
+                      Nummers die er al in staan worden automatisch overgeslagen.
+                    </p>
+                  </div>
                 )}
               </section>
             </div>
