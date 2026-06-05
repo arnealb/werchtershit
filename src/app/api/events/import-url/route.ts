@@ -1,31 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as cheerio from 'cheerio';
 import { getValidTokens } from '@/lib/spotify';
-import { extractEventFromText, transformExtractedToLineup } from '@/lib/lineup-extract';
+import {
+  extractEventFromText,
+  fetchPageText,
+  transformExtractedToLineup,
+} from '@/lib/lineup-extract';
 
 export const maxDuration = 60;
-
-async function fetchPageText(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml',
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!res.ok) {
-    throw new Error(`Page fetch failed: ${res.status}`);
-  }
-
-  const html = await res.text();
-  const $ = cheerio.load(html);
-  $('script, style, noscript, svg, iframe').remove();
-  const text = $('body').text().replace(/\s+/g, ' ').trim();
-  const title = $('title').text().trim();
-  return `${title}\n\n${text}`;
-}
 
 export async function POST(request: NextRequest) {
   const tokens = await getValidTokens();

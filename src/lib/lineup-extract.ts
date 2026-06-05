@@ -30,6 +30,9 @@ export interface EventCandidate {
 }
 
 const OPENAI_MODEL = () => process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
+// Timetable extraction is rare but precision-critical (day/stage/time
+// association) — use a stronger model there
+const EXTRACT_MODEL = () => process.env.OPENAI_EXTRACT_MODEL ?? 'gpt-4o';
 
 const EXTRACTION_SCHEMA = {
   type: 'object',
@@ -80,6 +83,8 @@ const EXTRACTION_SCHEMA = {
 const EXTRACTION_INSTRUCTIONS = [
   'You extract festival/concert timetables into structured data.',
   'Extract EVERY artist with their stage and set times. Use 24h HH:MM times.',
+  'CRITICAL: assign each artist to the EXACT day stated in the source. Sources often show a day label directly next to or below each artist name (e.g. "VR 21 AUG.", "FRI 21 AUG", "Saturday"), or group artists under day sections/tabs. Follow those labels precisely — NEVER guess or distribute artists over days yourself. If a day cannot be determined for an artist, put them on the first day rather than inventing a spread.',
+  'Dutch day abbreviations: DO=Thursday, VR=Friday, ZA=Saturday, ZO=Sunday, WO=Wednesday, MA=Monday, DI=Tuesday.',
   'If only a lineup without times is shown, still list the artists and use empty strings for times.',
   'If stages are unknown, use a single stage named "Main".',
   'Dates as YYYY-MM-DD; if the year is missing, infer it from context (upcoming editions).',
@@ -133,7 +138,7 @@ const extractionFormat = {
 
 export async function extractEventFromText(pageText: string, hint?: string): Promise<ExtractedEvent> {
   const output = await callOpenAI({
-    model: OPENAI_MODEL(),
+    model: EXTRACT_MODEL(),
     instructions: EXTRACTION_INSTRUCTIONS,
     input: [
       hint ? `Event hint: ${hint}` : '',
@@ -147,7 +152,7 @@ export async function extractEventFromText(pageText: string, hint?: string): Pro
 
 export async function extractEventFromImage(imageDataUrl: string, hint?: string): Promise<ExtractedEvent> {
   const output = await callOpenAI({
-    model: OPENAI_MODEL(),
+    model: EXTRACT_MODEL(),
     instructions: EXTRACTION_INSTRUCTIONS,
     input: [
       {
@@ -210,6 +215,48 @@ export async function searchEventCandidates(query: string): Promise<EventCandida
   });
   const parsed = JSON.parse(output) as { candidates?: EventCandidate[] };
   return (parsed.candidates ?? []).slice(0, 5);
+}
+
+// ─── Page text extraction ─────────────────────────────────────────────────────
+
+/**
+ * Fetch a page and convert it to text while PRESERVING line structure —
+ * day labels next to artist names must stay on adjacent lines, otherwise
+ * the model can't associate artists with the right day.
+ */
+export async function fetchPageText(url: string): Promise<string> {
+  const cheerio = await import('cheerio');
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+    },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) {
+    throw new Error(`Page fetch failed: ${res.status}`);
+  }
+
+  const html = await res.text();
+  const $ = cheerio.load(html);
+  $('script, style, noscript, svg, iframe').remove();
+  $('br').replaceWith('\n');
+  $('div, p, li, h1, h2, h3, h4, h5, h6, section, article, tr, figcaption, a, span').each(
+    (_, el) => {
+      $(el).append('\n');
+    },
+  );
+
+  const title = $('title').text().trim();
+  const text = $('body')
+    .text()
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return `${title}\n\n${text}`;
 }
 
 // ─── Transform extracted data into the app's LineupData ──────────────────────
