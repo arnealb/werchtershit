@@ -55,6 +55,11 @@ export interface DaySchedule {
   day: string;
   /** ISO date string e.g. "2026-07-02" */
   date: string;
+  /**
+   * False when the source only listed artists per day without set times
+   * (placeholder times were generated). Undefined means times are real.
+   */
+  hasTimes?: boolean;
   stages: StageSchedule[];
   /** Earliest start in minutes from midnight across all acts */
   dayStartMinutes: number;

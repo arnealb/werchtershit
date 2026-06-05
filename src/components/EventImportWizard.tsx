@@ -333,7 +333,14 @@ export default function EventImportWizard({ isAuthenticated }: Props) {
             </p>
             {draft.lineup.map((day) => (
               <div key={day.day} className="rounded-xl border border-line bg-card p-3">
-                <p className="text-sm font-bold text-cream">{formatDayLabel(day)}</p>
+                <p className="text-sm font-bold text-cream">
+                  {formatDayLabel(day)}
+                  {day.hasTimes === false && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase text-fog-dim">
+                      nog geen settijden
+                    </span>
+                  )}
+                </p>
                 {day.stages.map((stage) => (
                   <div key={stage.stageName} className="mt-2">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-ember-soft">
@@ -341,7 +348,11 @@ export default function EventImportWizard({ isAuthenticated }: Props) {
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-fog">
                       {stage.artists
-                        .map((artist) => `${artist.name} (${artist.startTime.display})`)
+                        .map((artist) =>
+                          day.hasTimes === false
+                            ? artist.name
+                            : `${artist.name} (${artist.startTime.display})`,
+                        )
                         .join(' · ')}
                     </p>
                   </div>

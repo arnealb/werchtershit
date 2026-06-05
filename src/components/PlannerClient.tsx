@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatDayLabel, type Artist, type LineupData } from '@/types/lineup';
 import type { SpotifyPlaylistSummary } from '@/types/spotify';
 import TimetableView from './timetable/TimetableView';
+import ArtistGridView from './timetable/ArtistGridView';
 import SelectedArtistsPanel, { SpotifyMark } from './SelectedArtistsPanel';
 import PlaylistWizard from './PlaylistWizard';
 
@@ -237,13 +238,23 @@ export default function PlannerClient({ event, initialLineup, initialSpotifyUser
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {activeDaySchedule ? (
-            <TimetableView
-              daySchedule={activeDaySchedule}
-              selectedIds={selectedIds}
-              onToggle={toggleArtist}
-              onSelectAll={selectAllForDay}
-              onClearAll={clearAllForDay}
-            />
+            activeDaySchedule.hasTimes === false ? (
+              <ArtistGridView
+                daySchedule={activeDaySchedule}
+                selectedIds={selectedIds}
+                onToggle={toggleArtist}
+                onSelectAll={selectAllForDay}
+                onClearAll={clearAllForDay}
+              />
+            ) : (
+              <TimetableView
+                daySchedule={activeDaySchedule}
+                selectedIds={selectedIds}
+                onToggle={toggleArtist}
+                onSelectAll={selectAllForDay}
+                onClearAll={clearAllForDay}
+              />
+            )
           ) : (
             <div className="flex items-center justify-center h-64 text-fog-dim">
               Geen programma voor deze dag.

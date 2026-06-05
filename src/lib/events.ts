@@ -12,6 +12,7 @@ export interface EventSummary {
   imageUrl: string | null;
   artistCount: number;
   dayCount: number;
+  createdBy: string;
 }
 
 export interface EventRecord extends EventSummary {
@@ -25,6 +26,7 @@ interface EventRow {
   start_date: string | null;
   end_date: string | null;
   image_url: string | null;
+  created_by?: string;
   lineup: unknown;
 }
 
@@ -47,6 +49,7 @@ function rowToRecord(row: EventRow): EventRecord {
       (sum, day) => sum + day.stages.reduce((s, stage) => s + stage.artists.length, 0),
       0,
     ),
+    createdBy: row.created_by ?? '',
   };
 }
 
@@ -95,7 +98,7 @@ export async function listEvents(): Promise<EventSummary[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('events')
-    .select('slug, name, location, start_date, end_date, image_url, lineup')
+    .select('slug, name, location, start_date, end_date, image_url, created_by, lineup')
     .order('start_date', { ascending: true });
   if (error) throw new Error(`Failed to list events: ${error.message}`);
 
@@ -113,7 +116,7 @@ export async function getEvent(slug: string): Promise<EventRecord | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('events')
-    .select('slug, name, location, start_date, end_date, image_url, lineup')
+    .select('slug, name, location, start_date, end_date, image_url, created_by, lineup')
     .eq('slug', slug)
     .maybeSingle();
   if (error) {
@@ -184,4 +187,32 @@ export async function createEvent(input: {
   if (error) throw new Error(`Failed to create event: ${error.message}`);
 
   return rowToRecord({ ...row, image_url: null });
+}
+
+/** Delete an event. Only the creator can delete; the built-in event is protected. */
+export async function deleteEvent(slug: string, requesterId: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase is not configured');
+  }
+  if (slug === BUILTIN_EVENT_SLUG) {
+    throw new Error('Dit event kan niet verwijderd worden');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('events')
+    .select('created_by')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to read event: ${error.message}`);
+  if (!data) throw new Error('Event niet gevonden');
+  if (data.created_by !== requesterId) {
+    throw new Error('Alleen wie het event toevoegde kan het verwijderen');
+  }
+
+  const { error: deleteError } = await supabase.from('events').delete().eq('slug', slug);
+  if (deleteError) throw new Error(`Failed to delete event: ${deleteError.message}`);
+
+  // Clean up selections for this event (best effort)
+  await supabase.from('user_selections').delete().eq('event_slug', slug);
 }

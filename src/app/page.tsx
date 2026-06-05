@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { listEvents } from '@/lib/events';
+import { getSpotifyUser, getValidTokens } from '@/lib/spotify';
+import DeleteEventButton from '@/components/DeleteEventButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +33,14 @@ export default async function HomePage() {
     loadError = true;
   }
 
+  let currentUserId = '';
+  try {
+    const tokens = await getValidTokens();
+    if (tokens) currentUserId = (await getSpotifyUser(tokens.accessToken)).id;
+  } catch {
+    // Not authenticated — no delete buttons
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-coal">
       <header className="sticky top-0 z-10 border-b border-line bg-soot/90 backdrop-blur px-4 pt-3 pb-3 pt-safe">
@@ -48,7 +58,10 @@ export default async function HomePage() {
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event, index) => (
-              <li key={event.slug} className="animate-rise" style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}>
+              <li key={event.slug} className="relative animate-rise" style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}>
+                {currentUserId && event.createdBy === currentUserId && (
+                  <DeleteEventButton slug={event.slug} name={event.name} />
+                )}
                 <Link
                   href={`/e/${event.slug}`}
                   className={`group relative block overflow-hidden rounded-2xl border border-line bg-gradient-to-br p-5 transition-transform duration-200 hover:scale-[1.015] active:scale-[0.99] ${TILE_GRADIENTS[index % TILE_GRADIENTS.length]}`}

@@ -243,16 +243,26 @@ export function transformExtractedToLineup(extracted: ExtractedEvent): LineupDat
     const dayKey = day.date || slugify(day.label) || `dag-${dayIndex + 1}`;
     let colorIndex = dayIndex;
 
+    // Lineup-only detection: when most artists lack set times, the day is a
+    // plain lineup (rendered as a grid, not a timeline)
+    const allDayArtists = day.stages.flatMap((stage) => stage.artists);
+    const timedCount = allDayArtists.filter((artist) => toMinutes(artist.startTime) !== null).length;
+    const hasTimes = allDayArtists.length > 0 && timedCount >= allDayArtists.length / 2;
+
     const stages = day.stages
       .filter((stage) => stage.artists.length > 0)
       .map((stage) => {
         const artists: Artist[] = stage.artists
           .filter((artist) => artist.name.trim().length > 0)
           .map((artist, artistIndex) => {
-            // Default to sequential one-hour slots when times are unknown
-            let start = toMinutes(artist.startTime) ?? 12 * 60 + artistIndex * 60;
-            let end = toMinutes(artist.endTime) ?? start + 50;
-            if (end <= start) end = start + 50;
+            // Lineup-only days get a uniform placeholder slot (positions are
+            // never rendered); timed days fall back to sequential slots for
+            // the odd artist missing a time
+            let start = hasTimes
+              ? toMinutes(artist.startTime) ?? 12 * 60 + artistIndex * 60
+              : toMinutes(artist.startTime) ?? 12 * 60;
+            let end = toMinutes(artist.endTime) ?? start + 60;
+            if (end <= start) end = start + 60;
             if (end - start > 6 * 60) end = start + 90; // guard against bogus spans
 
             colorIndex += 1;
@@ -289,6 +299,7 @@ export function transformExtractedToLineup(extracted: ExtractedEvent): LineupDat
     const daySchedule: DaySchedule = {
       day: dayKey,
       date: day.date || '',
+      hasTimes,
       stages,
       dayStartMinutes: Math.min(...allMinutes),
       dayEndMinutes: Math.max(...allMinutes),
