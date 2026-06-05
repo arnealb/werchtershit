@@ -204,15 +204,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const finalTracks = tracks.length > 0
-        ? tracks.slice(0, budget)
-        : fallbackPrepTracks(candidatesByArtistId.get(artist.id) ?? [], budget);
-
-      if (tracks.length === 0 && finalTracks.length > 0) {
-        console.info('[/api/spotify/smart-prep] Used fallback ranking', {
-          artist: artist.name,
-          trackCount: finalTracks.length,
-        });
+      // Top up when the AI returned fewer tracks than the budget allows
+      let finalTracks = tracks.slice(0, budget);
+      if (finalTracks.length < budget) {
+        const chosenUris = new Set(finalTracks.map((track) => track.uri));
+        const remaining = (candidatesByArtistId.get(artist.id) ?? []).filter(
+          (candidate) => !chosenUris.has(candidate.uri),
+        );
+        const topUp = fallbackPrepTracks(remaining, budget - finalTracks.length);
+        if (topUp.length > 0) {
+          console.info('[/api/spotify/smart-prep] Topped up AI selection', {
+            artist: artist.name,
+            aiTracks: finalTracks.length,
+            topUpTracks: topUp.length,
+            budget,
+          });
+          finalTracks = [...finalTracks, ...topUp];
+        }
       }
 
       return {

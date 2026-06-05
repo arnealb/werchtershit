@@ -67,6 +67,7 @@ export default function PlaylistWizard({
   const [target, setTarget] = useState<'new' | 'existing'>('new');
   const [targetPlaylistId, setTargetPlaylistId] = useState('');
   const [playlistQuery, setPlaylistQuery] = useState('');
+  const [playlistName, setPlaylistName] = useState('Rock Werchter 2026 — Mijn selectie');
   const [preview, setPreview] = useState<PlaylistPreviewData | null>(null);
   const [removedUris, setRemovedUris] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -151,6 +152,7 @@ export default function PlaylistWizard({
           maxTracksPerArtist: tracksPerArtist,
           targetPlaylistId: target === 'existing' ? targetPlaylistId : undefined,
           trackUris: keptTrackUris,
+          playlistName: target === 'new' ? playlistName.trim() : undefined,
         }),
       });
       const data = await res.json();
@@ -325,6 +327,22 @@ export default function PlaylistWizard({
                     Bestaande playlist
                   </button>
                 </div>
+                {target === 'new' && (
+                  <div className="mt-2">
+                    <label className="block text-[11px] font-semibold text-fog mb-1.5" htmlFor="playlist-name">
+                      Naam van je playlist
+                    </label>
+                    <input
+                      id="playlist-name"
+                      type="text"
+                      value={playlistName}
+                      onChange={(e) => setPlaylistName(e.target.value)}
+                      maxLength={100}
+                      placeholder="Bijv. Werchter 2026 voorbereiding"
+                      className="w-full rounded-xl border border-line bg-card px-3.5 py-2.5 text-sm text-cream placeholder:text-fog-dim focus:border-ember focus:outline-none"
+                    />
+                  </div>
+                )}
                 {target === 'existing' && (
                   <div className="mt-2 space-y-2">
                     {selectedPlaylist && (

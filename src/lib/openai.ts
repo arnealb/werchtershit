@@ -115,10 +115,10 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
         'Strongest signal: candidates with a recentLivePlayCount and the "live_setlist" source were ACTUALLY played at the artist\'s recent concerts — prioritize these.',
         'Then prefer live staples, recognizable hits, popular songs, and recent singles/album tracks.',
         'Aim for a representative mix across the artist\'s career: include the classics, not only recent work.',
-        'Select up to maxTracks per artist (it is set-weighted: headliners get more).',
+        'For each artist return EXACTLY maxTracks tracks when enough candidates exist — never fewer. Only when the candidate list itself is smaller, return all candidates. Order best-first.',
         'Do not invent songs. Only select track URIs from the provided candidate lists.',
         'Avoid tracks marked alreadyInPlaylist unless every good candidate is already covered.',
-        'Return concise reasons in plain English.',
+        'Write each reason in Dutch (Flemish-friendly), one short casual sentence.',
       ].join(' '),
       input: JSON.stringify(compactInput),
       text: {
