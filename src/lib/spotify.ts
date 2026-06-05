@@ -327,6 +327,7 @@ export async function getEditablePlaylists(token: string): Promise<SpotifyPlayli
         id: playlist.id,
         name: playlist.name,
         url: playlist.external_urls?.spotify ?? `https://open.spotify.com/playlist/${playlist.id}`,
+        imageUrl: playlist.images?.[0]?.url ?? null,
         trackCount,
         ownerName: playlist.owner?.display_name ?? playlist.owner?.id ?? '',
         isOwner,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { PlaylistDetails } from '@/lib/spotify';
 import type { SpotifyTrack } from '@/types/spotify';
@@ -54,14 +55,26 @@ export default function PlaylistDetailClient({ details, initialTracks }: Props) 
           ← Mijn playlists
         </Link>
         <div className="mt-1.5 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-display text-lg text-cream uppercase leading-tight truncate">
-              {details.name}
-            </h1>
-            <p className="text-xs text-fog mt-0.5">
-              {tracks.length} nummers · ±{totalMinutes} min
-              {details.collaborative && ' · samen met vrienden'}
-            </p>
+          <div className="flex items-center gap-3 min-w-0">
+            {details.imageUrl && (
+              <Image
+                src={details.imageUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                unoptimized
+              />
+            )}
+            <div className="min-w-0">
+              <h1 className="font-display text-lg text-cream uppercase leading-tight truncate">
+                {details.name}
+              </h1>
+              <p className="text-xs text-fog mt-0.5">
+                {tracks.length} nummers · ±{totalMinutes} min
+                {details.collaborative && ' · samen met vrienden'}
+              </p>
+            </div>
           </div>
           <a
             href={details.url}

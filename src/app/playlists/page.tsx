@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { getEditablePlaylists, getValidTokens } from '@/lib/spotify';
 import { SpotifyMark } from '@/components/SelectedArtistsPanel';
@@ -70,9 +71,20 @@ export default async function PlaylistsPage() {
                   href={`/playlists/${playlist.id}`}
                   className="flex items-center gap-3 rounded-xl border border-line bg-card hover:bg-card-hi p-3.5 transition-colors"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-ember/15 text-lg">
-                    🎵
-                  </div>
+                  {playlist.imageUrl ? (
+                    <Image
+                      src={playlist.imageUrl}
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ember/15 text-lg">
+                      🎵
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-cream truncate">{playlist.name}</p>
                     <p className="text-xs text-fog mt-0.5">

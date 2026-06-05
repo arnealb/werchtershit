@@ -14,6 +14,7 @@ export interface SpotifyPlaylistSummary {
   id: string;
   name: string;
   url: string;
+  imageUrl: string | null;
   trackCount: number;
   ownerName: string;
   isOwner: boolean;
