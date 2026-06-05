@@ -155,6 +155,7 @@ export default function PlaylistWizard({
         body: JSON.stringify({
           artistIds,
           eventSlug,
+          mode,
           maxTracksPerArtist: tracksPerArtist,
           targetPlaylistId: target === 'existing' ? targetPlaylistId : undefined,
           trackUris: keptTrackUris,

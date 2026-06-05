@@ -497,6 +497,21 @@ export async function getPlaylistTracks(playlistId: string, token: string): Prom
   return tracks;
 }
 
+export async function renamePlaylist(
+  playlistId: string,
+  name: string,
+  token: string,
+): Promise<void> {
+  const path = `/playlists/${playlistId}`;
+  const res = await spotifyFetch(path, token, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    throw await readSpotifyError('Failed to rename playlist', 'PUT', path, res);
+  }
+}
+
 export async function removeTracksFromPlaylist(
   playlistId: string,
   trackUris: string[],

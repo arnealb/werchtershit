@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { getEditablePlaylists, getValidTokens } from '@/lib/spotify';
+import { getEditablePlaylists, getSpotifyUser, getValidTokens } from '@/lib/spotify';
+import { getGenerationsByPlaylist, type PlaylistGenerationSummary } from '@/lib/playlist-meta';
 import { SpotifyMark } from '@/components/SelectedArtistsPanel';
 import type { SpotifyPlaylistSummary } from '@/types/spotify';
 
@@ -10,16 +11,27 @@ export default async function PlaylistsPage() {
   const tokens = await getValidTokens();
 
   let playlists: SpotifyPlaylistSummary[] = [];
+  let generations = new Map<string, PlaylistGenerationSummary>();
   let loadError = false;
 
   if (tokens) {
     try {
-      playlists = await getEditablePlaylists(tokens.accessToken);
+      const user = await getSpotifyUser(tokens.accessToken);
+      [playlists, generations] = await Promise.all([
+        getEditablePlaylists(tokens.accessToken),
+        getGenerationsByPlaylist(user.id),
+      ]);
     } catch (err) {
       console.error('[/playlists] Failed to load playlists:', err);
       loadError = true;
     }
   }
+
+  // App-generated playlists first, then the rest
+  const sortedPlaylists = [
+    ...playlists.filter((playlist) => generations.has(playlist.id)),
+    ...playlists.filter((playlist) => !generations.has(playlist.id)),
+  ];
 
   return (
     <div className="h-full overflow-y-auto bg-coal">
@@ -65,31 +77,40 @@ export default async function PlaylistsPage() {
           </div>
         ) : (
           <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {playlists.map((playlist, index) => (
-              <li key={playlist.id} className="animate-rise" style={{ animationDelay: `${Math.min(index * 30, 400)}ms` }}>
-                <Link href={`/playlists/${playlist.id}`} className="group block">
-                  {playlist.imageUrl ? (
-                    <Image
-                      src={playlist.imageUrl}
-                      alt=""
-                      width={300}
-                      height={300}
-                      className="aspect-square w-full rounded-xl object-cover shadow-lg transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-[0.98]"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-gradient-to-br from-card-hi to-card text-4xl shadow-lg transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-[0.98]">
-                      🎵
-                    </div>
-                  )}
-                  <p className="mt-2 text-sm font-bold text-cream truncate">{playlist.name}</p>
-                  <p className="text-xs text-fog mt-0.5 truncate">
-                    {playlist.trackCount} nummers
-                    {playlist.collaborative && ' · met vrienden'}
-                  </p>
-                </Link>
-              </li>
-            ))}
+            {sortedPlaylists.map((playlist, index) => {
+              const generation = generations.get(playlist.id);
+              return (
+                <li key={playlist.id} className="animate-rise" style={{ animationDelay: `${Math.min(index * 30, 400)}ms` }}>
+                  <Link href={`/playlists/${playlist.id}`} className="group relative block">
+                    {playlist.imageUrl ? (
+                      <Image
+                        src={playlist.imageUrl}
+                        alt=""
+                        width={300}
+                        height={300}
+                        className="aspect-square w-full rounded-xl object-cover shadow-lg transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-[0.98]"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-gradient-to-br from-card-hi to-card text-4xl shadow-lg transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-[0.98]">
+                        🎵
+                      </div>
+                    )}
+                    {generation && (
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-ember-soft backdrop-blur">
+                        ✨ {generation.eventName}
+                      </span>
+                    )}
+                    <p className="mt-2 text-sm font-bold text-cream truncate">{playlist.name}</p>
+                    <p className="text-xs text-fog mt-0.5 truncate">
+                      {playlist.trackCount} nummers
+                      {generation && ` · ${generation.allArtistNames.length} artiesten`}
+                      {playlist.collaborative && ' · met vrienden'}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

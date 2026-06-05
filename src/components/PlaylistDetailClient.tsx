@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PlaylistDetails } from '@/lib/spotify';
+import type { PlaylistGenerationSummary } from '@/lib/playlist-meta';
 import type { SpotifyTrack } from '@/types/spotify';
 
 interface Props {
   details: PlaylistDetails;
   initialTracks: SpotifyTrack[];
+  generation: PlaylistGenerationSummary | null;
 }
 
 function formatDuration(ms: number): string {
@@ -18,10 +20,43 @@ function formatDuration(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-export default function PlaylistDetailClient({ details, initialTracks }: Props) {
+export default function PlaylistDetailClient({ details, initialTracks, generation }: Props) {
   const [tracks, setTracks] = useState<SpotifyTrack[]>(initialTracks);
   const [removingUri, setRemovingUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Rename
+  const [name, setName] = useState(details.name);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(details.name);
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const saveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === name) {
+      setIsEditingName(false);
+      setNameDraft(name);
+      return;
+    }
+    setIsSavingName(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/spotify/playlist/${details.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Hernoemen mislukt');
+      setName(trimmed);
+      setIsEditingName(false);
+    } catch (e) {
+      console.error('Rename failed:', e);
+      setError('Hernoemen is mislukt. Probeer het opnieuw.');
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const totalMs = tracks.reduce((sum, track) => sum + track.durationMs, 0);
   const totalMinutes = Math.round(totalMs / 60000);
@@ -67,9 +102,48 @@ export default function PlaylistDetailClient({ details, initialTracks }: Props) 
               />
             )}
             <div className="min-w-0">
-              <h1 className="font-display text-lg text-cream uppercase leading-tight truncate">
-                {details.name}
-              </h1>
+              {isEditingName ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveName();
+                      if (e.key === 'Escape') {
+                        setIsEditingName(false);
+                        setNameDraft(name);
+                      }
+                    }}
+                    maxLength={100}
+                    autoFocus
+                    className="w-full max-w-xs rounded-lg border border-ember bg-card px-2.5 py-1.5 text-sm font-bold text-cream focus:outline-none"
+                  />
+                  <button
+                    onClick={saveName}
+                    disabled={isSavingName}
+                    className="shrink-0 rounded-lg bg-ember px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                  >
+                    {isSavingName ? '…' : 'OK'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setNameDraft(name);
+                    setIsEditingName(true);
+                  }}
+                  className="group flex items-center gap-1.5 text-left min-w-0"
+                  title="Klik om te hernoemen"
+                >
+                  <h1 className="font-display text-lg text-cream uppercase leading-tight truncate">
+                    {name}
+                  </h1>
+                  <span className="shrink-0 text-xs text-fog-dim transition-colors group-hover:text-ember-soft">
+                    ✏️
+                  </span>
+                </button>
+              )}
               <p className="text-xs text-fog mt-0.5">
                 {tracks.length} nummers · ±{totalMinutes} min
                 {details.collaborative && ' · samen met vrienden'}
@@ -91,6 +165,49 @@ export default function PlaylistDetailClient({ details, initialTracks }: Props) 
         {error && (
           <div className="mb-3 rounded-lg bg-ember-deep/25 border border-ember-deep px-3 py-2 text-sm text-ember-soft">
             {error}
+          </div>
+        )}
+
+        {generation && (
+          <div className="mb-4 rounded-xl border border-line bg-card p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-ember-soft">
+              ✨ Gemaakt met Festival Planner
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fog">
+              <span>
+                Event: <span className="font-semibold text-cream">{generation.eventName || '—'}</span>
+              </span>
+              <span>
+                Modus:{' '}
+                <span className="font-semibold text-cream">
+                  {generation.mode === 'smart' ? 'Slim (AI)' : 'Snel'}
+                </span>
+              </span>
+              <span>
+                ±{generation.tracksPerArtist} nummers/artiest
+              </span>
+              <span>
+                Laatst gegenereerd:{' '}
+                <span className="font-semibold text-cream">
+                  {new Intl.DateTimeFormat('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+                    new Date(generation.createdAt),
+                  )}
+                </span>
+              </span>
+              {generation.generationCount > 1 && (
+                <span>{generation.generationCount}× aangevuld</span>
+              )}
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {generation.allArtistNames.map((artistName) => (
+                <span
+                  key={artistName}
+                  className="rounded-full bg-card-hi px-2.5 py-1 text-[11px] font-semibold text-cream"
+                >
+                  {artistName}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 

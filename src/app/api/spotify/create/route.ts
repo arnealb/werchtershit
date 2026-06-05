@@ -9,6 +9,7 @@ import {
   SPOTIFY_SCOPES,
 } from '@/lib/spotify';
 import { getEventLineup } from '@/lib/events';
+import { recordPlaylistGeneration } from '@/lib/playlist-meta';
 import { formatDayLabel, makeChronologicalComparator, type Artist } from '@/types/lineup';
 import type { MatchedArtist } from '@/types/spotify';
 
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     trackUris: explicitTrackUris,
     playlistName: requestedName,
     eventSlug,
+    mode: requestedMode,
   } = body as {
     artistIds: string[];
     maxTracksPerArtist?: number;
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
     trackUris?: string[];
     playlistName?: string;
     eventSlug?: string;
+    mode?: string;
   };
 
   if (!artistIds || artistIds.length === 0) {
@@ -102,8 +105,22 @@ export async function POST(request: NextRequest) {
       requestedScopes: SPOTIFY_SCOPES,
     });
 
+    const generationBase = {
+      spotifyUserId: user.id,
+      eventSlug: event.slug,
+      eventName: event.name,
+      mode: (requestedMode === 'quick' ? 'quick' : 'smart') as 'smart' | 'quick',
+      tracksPerArtist: maxTracksPerArtist,
+      artistNames: selectedArtists.map((a) => a.name),
+    };
+
     if (targetPlaylistId) {
       const addResult = await addMissingTracksToPlaylist(targetPlaylistId, trackUris, tokens.accessToken);
+      await recordPlaylistGeneration({
+        ...generationBase,
+        playlistId: targetPlaylistId,
+        addedTracks: addResult.addedCount,
+      });
       return NextResponse.json({
         ok: true,
         playlistId: targetPlaylistId,
@@ -117,6 +134,11 @@ export async function POST(request: NextRequest) {
     }
 
     const playlist = await createPlaylist(playlistName, description, trackUris, tokens.accessToken);
+    await recordPlaylistGeneration({
+      ...generationBase,
+      playlistId: playlist.id,
+      addedTracks: trackUris.length,
+    });
 
     return NextResponse.json({
       ok: true,

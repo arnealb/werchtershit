@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { getPlaylistDetails, getPlaylistTracks, getValidTokens } from '@/lib/spotify';
+import { getPlaylistDetails, getPlaylistTracks, getSpotifyUser, getValidTokens } from '@/lib/spotify';
+import { getGenerationsByPlaylist } from '@/lib/playlist-meta';
 import PlaylistDetailClient from '@/components/PlaylistDetailClient';
 
 export const dynamic = 'force-dynamic';
@@ -27,12 +28,20 @@ export default async function PlaylistDetailPage({
   }
 
   try {
-    const [details, tracks] = await Promise.all([
+    const user = await getSpotifyUser(tokens.accessToken);
+    const [details, tracks, generations] = await Promise.all([
       getPlaylistDetails(id, tokens.accessToken),
       getPlaylistTracks(id, tokens.accessToken),
+      getGenerationsByPlaylist(user.id),
     ]);
 
-    return <PlaylistDetailClient details={{ ...details, trackCount: tracks.length }} initialTracks={tracks} />;
+    return (
+      <PlaylistDetailClient
+        details={{ ...details, trackCount: tracks.length }}
+        initialTracks={tracks}
+        generation={generations.get(id) ?? null}
+      />
+    );
   } catch (err) {
     console.error('[/playlists/[id]] Failed to load playlist:', err);
     return (
