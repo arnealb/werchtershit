@@ -2,25 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Artist, Day, LineupData } from '@/types/lineup';
-import { DAY_LABELS } from '@/types/lineup';
-import type { PlaylistPreviewData, SpotifyPlaylistSummary } from '@/types/spotify';
+import type { SpotifyPlaylistSummary } from '@/types/spotify';
 import TimetableView from './timetable/TimetableView';
-import SelectedArtistsPanel from './SelectedArtistsPanel';
-import PlaylistPreview from './PlaylistPreview';
-import DebugPanel from './DebugPanel';
+import SelectedArtistsPanel, { SpotifyMark } from './SelectedArtistsPanel';
+import PlaylistWizard from './PlaylistWizard';
+import { DAY_DATE_NL, DAY_SHORT_NL } from './dayLabels';
 
 const DAYS: Day[] = ['thursday', 'friday', 'saturday', 'sunday'];
 
 interface SpotifyUser {
   id: string;
   displayName: string;
-}
-
-interface SaveResult {
-  mode: 'new' | 'existing';
-  addedTracks: number;
-  skippedTracks: number;
-  requestedTracks: number;
 }
 
 interface Props {
@@ -34,28 +26,16 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | null>(initialSpotifyUser);
 
+  const [showWizard, setShowWizard] = useState(false);
+  const [showSelectionSheet, setShowSelectionSheet] = useState(false);
+  const [playlists, setPlaylists] = useState<SpotifyPlaylistSummary[]>([]);
+  const [playlistsLoading, setPlaylistsLoading] = useState(false);
+
   // Selection persistence (Supabase, keyed by Spotify user)
   const [selectionSynced, setSelectionSynced] = useState(false);
   const [persistenceEnabled, setPersistenceEnabled] = useState(false);
 
-  // Preview state
-  const [showPreview, setShowPreview] = useState(false);
-  const [preview, setPreview] = useState<PlaylistPreviewData | null>(null);
-  const [previewMode, setPreviewMode] = useState<'quick' | 'smart'>('quick');
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [smartPreviewLoading, setSmartPreviewLoading] = useState(false);
-  const [maxTracksPerArtist, setMaxTracksPerArtist] = useState(5);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createdUrl, setCreatedUrl] = useState<string | undefined>();
-  const [savedMode, setSavedMode] = useState<'new' | 'existing' | undefined>();
-  const [saveResult, setSaveResult] = useState<SaveResult | undefined>();
-  const [playlists, setPlaylists] = useState<SpotifyPlaylistSummary[]>([]);
-  const [playlistsLoading, setPlaylistsLoading] = useState(false);
-  const [playlistsError, setPlaylistsError] = useState<string | null>(null);
-
-  const activeDaySchedule = lineup.find((d) => d.day === activeDay)!;
-
-  // Collect all artists for selected panel
+  const activeDaySchedule = lineup.find((d) => d.day === activeDay);
   const allArtists = lineup.flatMap((d) => d.stages.flatMap((s) => s.artists));
   const selectedArtists = allArtists.filter((a) => selectedIds.has(a.id));
 
@@ -72,6 +52,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   }, []);
 
   const selectAllForDay = useCallback(() => {
+    if (!activeDaySchedule) return;
     const dayArtists = activeDaySchedule.stages.flatMap((s) => s.artists);
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -81,6 +62,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   }, [activeDaySchedule]);
 
   const clearAllForDay = useCallback(() => {
+    if (!activeDaySchedule) return;
     const dayIds = new Set(activeDaySchedule.stages.flatMap((s) => s.artists.map((a) => a.id)));
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -90,6 +72,14 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   }, [activeDaySchedule]);
 
   const clearAll = useCallback(() => setSelectedIds(new Set()), []);
+
+  const removeArtist = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
 
   // Load saved selection from Supabase once the Spotify user is known
   useEffect(() => {
@@ -135,85 +125,8 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
     return () => clearTimeout(handle);
   }, [selectedIds, spotifyUser, selectionSynced, persistenceEnabled]);
 
-  const removeArtist = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  }, []);
-
-  // Fetch preview (and re-fetch when maxTracksPerArtist changes)
-  const fetchPreview = useCallback(
-    async (artistIds: string[], max: number) => {
-      setPreviewLoading(true);
-      try {
-        const res = await fetch('/api/spotify/playlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ artistIds: [...artistIds], maxTracksPerArtist: max }),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-        setPreview(data);
-      } catch (e) {
-        console.error('Preview error:', e);
-        alert('Failed to load preview: ' + String(e));
-      } finally {
-        setPreviewLoading(false);
-      }
-    },
-    [],
-  );
-
-  const handlePreview = useCallback(async () => {
-    setPreviewMode('quick');
-    await fetchPreview([...selectedIds], maxTracksPerArtist);
-    setCreatedUrl(undefined);
-    setSavedMode(undefined);
-    setSaveResult(undefined);
-    setShowPreview(true);
-  }, [selectedIds, maxTracksPerArtist, fetchPreview]);
-
-  const handleSmartPreview = useCallback(async () => {
-    setPreviewMode('smart');
-    setPreview(null);
-    setCreatedUrl(undefined);
-    setSavedMode(undefined);
-    setSaveResult(undefined);
-    setShowPreview(true);
-  }, []);
-
-  const buildSmartPreview = useCallback(async (targetPlaylistId?: string) => {
-    setSmartPreviewLoading(true);
-    try {
-      const res = await fetch('/api/spotify/smart-prep', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          artistIds: [...selectedIds],
-          maxTracksPerArtist,
-          targetPlaylistId,
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setPreview(data);
-      setCreatedUrl(undefined);
-      setSavedMode(undefined);
-      setSaveResult(undefined);
-      setShowPreview(true);
-    } catch (e) {
-      console.error('Smart preview error:', e);
-      alert('Failed to build smart prep: ' + String(e));
-    } finally {
-      setSmartPreviewLoading(false);
-    }
-  }, [selectedIds, maxTracksPerArtist]);
-
   const fetchPlaylists = useCallback(async () => {
     setPlaylistsLoading(true);
-    setPlaylistsError(null);
     try {
       const res = await fetch('/api/spotify/playlists');
       const data = await res.json();
@@ -222,95 +135,83 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
     } catch (e) {
       console.error('Playlists error:', e);
       setPlaylists([]);
-      setPlaylistsError('Could not load existing playlists.');
     } finally {
       setPlaylistsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!showPreview || !spotifyUser) return;
+    if (!showWizard || !spotifyUser) return;
     fetchPlaylists();
-  }, [fetchPlaylists, showPreview, spotifyUser]);
-
-  // Re-fetch when slider changes while preview is open
-  useEffect(() => {
-    if (!showPreview || selectedIds.size === 0) return;
-    if (preview?.mode === 'smart') return;
-    fetchPreview([...selectedIds], maxTracksPerArtist);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maxTracksPerArtist]);
-
-  const handleCreate = useCallback(async (targetPlaylistId?: string) => {
-    setIsCreating(true);
-    try {
-      const res = await fetch('/api/spotify/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          artistIds: [...selectedIds],
-          maxTracksPerArtist,
-          targetPlaylistId,
-          trackUris: preview?.matchedArtists.flatMap((artist) =>
-            artist.tracks.map((track) => track.uri),
-          ),
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setCreatedUrl(data.playlistUrl);
-      setSavedMode(data.mode ?? (targetPlaylistId ? 'existing' : 'new'));
-      setSaveResult({
-        mode: data.mode ?? (targetPlaylistId ? 'existing' : 'new'),
-        addedTracks: data.addedTracks ?? data.totalTracks ?? 0,
-        skippedTracks: data.skippedTracks ?? 0,
-        requestedTracks: data.requestedTracks ?? data.totalTracks ?? 0,
-      });
-      if (targetPlaylistId) fetchPlaylists();
-    } catch (e) {
-      alert('Failed to save playlist: ' + String(e));
-    } finally {
-      setIsCreating(false);
-    }
-  }, [fetchPlaylists, preview, selectedIds, maxTracksPerArtist]);
+  }, [fetchPlaylists, showWizard, spotifyUser]);
 
   const handleDisconnect = async () => {
     await fetch('/api/spotify/me', { method: 'DELETE' });
     setSpotifyUser(null);
   };
 
+  const openWizard = () => {
+    setShowSelectionSheet(false);
+    setShowWizard(true);
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-coal text-cream overflow-hidden">
       {/* Top bar */}
-      <header className="flex items-center gap-4 px-5 py-3 border-b border-gray-800 bg-gray-950 shrink-0">
-        <div>
-          <h1 className="text-base font-bold tracking-tight text-white">
-            Rock Werchter 2026
+      <header className="shrink-0 border-b border-line bg-soot/90 backdrop-blur pt-safe">
+        <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+          <h1 className="font-display text-xl leading-none text-cream uppercase">
+            Werchter <span className="text-ember">’26</span>
           </h1>
-          <p className="text-xs text-gray-500">Lineup Planner</p>
+
+          <div className="ml-auto">
+            {spotifyUser ? (
+              <button
+                onClick={handleDisconnect}
+                className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-spotify"
+                title="Klik om te ontkoppelen"
+              >
+                <SpotifyMark />
+                <span className="max-w-28 truncate">{spotifyUser.displayName}</span>
+              </button>
+            ) : (
+              <a
+                href="/api/spotify/auth"
+                className="flex items-center gap-1.5 rounded-full bg-spotify hover:bg-spotify-hi px-3.5 py-1.5 text-xs font-bold text-white transition-colors"
+              >
+                <SpotifyMark /> Verbind Spotify
+              </a>
+            )}
+          </div>
         </div>
 
-        {/* Day tabs */}
-        <nav className="flex gap-1 ml-4">
+        {/* Day pills */}
+        <nav className="flex gap-1.5 px-4 pb-2.5 overflow-x-auto no-scrollbar">
           {DAYS.map((day) => {
             const count = lineup
               .find((d) => d.day === day)
               ?.stages.flatMap((s) => s.artists)
               .filter((a) => selectedIds.has(a.id)).length ?? 0;
+            const active = activeDay === day;
             return (
               <button
                 key={day}
                 onClick={() => setActiveDay(day)}
                 className={[
-                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-colors',
-                  activeDay === day
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                  'shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-colors',
+                  active
+                    ? 'bg-ember text-white'
+                    : 'bg-card text-fog hover:text-cream',
                 ].join(' ')}
               >
-                {DAY_LABELS[day]}
+                {DAY_SHORT_NL[day]} {DAY_DATE_NL[day].split(' ')[0]}
                 {count > 0 && (
-                  <span className="ml-1.5 bg-blue-500/30 text-blue-300 rounded-full px-1.5 py-0.5 text-[10px]">
+                  <span
+                    className={[
+                      'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]',
+                      active ? 'bg-white/25' : 'bg-ember/20 text-ember-soft',
+                    ].join(' ')}
+                  >
                     {count}
                   </span>
                 )}
@@ -318,35 +219,10 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
             );
           })}
         </nav>
-
-        {/* Spotify status */}
-        <div className="ml-auto flex items-center gap-3">
-          {spotifyUser ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-green-400 font-medium">
-                ✓ {spotifyUser.displayName}
-              </span>
-              <button
-                onClick={handleDisconnect}
-                className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-              >
-                Disconnect
-              </button>
-            </div>
-          ) : (
-            <a
-              href="/api/spotify/auth"
-              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-green-700/80 hover:bg-green-600 text-white transition-colors"
-            >
-              Connect Spotify
-            </a>
-          )}
-        </div>
       </header>
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Timetable */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {activeDaySchedule ? (
             <TimetableView
@@ -357,57 +233,90 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
               onClearAll={clearAllForDay}
             />
           ) : (
-            <div className="flex items-center justify-center h-64 text-gray-600">
-              No schedule data for this day.
+            <div className="flex items-center justify-center h-64 text-fog-dim">
+              Geen programma voor deze dag.
             </div>
           )}
+          {/* Spacer so floating bar never covers the last stage row on mobile */}
+          <div className="h-24 lg:hidden" />
         </main>
 
-        {/* Right panel */}
-        <aside className="w-64 shrink-0 overflow-hidden flex flex-col border-l border-gray-800">
+        {/* Desktop side panel */}
+        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-l border-line">
           <SelectedArtistsPanel
             selectedArtists={selectedArtists}
             onRemove={removeArtist}
             onClearAll={clearAll}
-            onPreview={handlePreview}
-            onSmartPreview={handleSmartPreview}
+            onMakePlaylist={openWizard}
             isAuthenticated={!!spotifyUser}
-            isPreviewLoading={previewLoading}
-            isSmartPreviewLoading={smartPreviewLoading}
           />
         </aside>
       </div>
 
-      {/* Preview modal */}
-      {showPreview && (preview || previewMode === 'smart') && (
-        <PlaylistPreview
-          preview={preview}
-          isSmartPreview={previewMode === 'smart'}
-          playlists={playlists}
-          playlistsLoading={playlistsLoading}
-          playlistsError={playlistsError}
-          maxTracksPerArtist={maxTracksPerArtist}
-          onMaxTracksChange={setMaxTracksPerArtist}
-          onConfirm={handleCreate}
-          onCancel={() => {
-            setShowPreview(false);
-            setCreatedUrl(undefined);
-          }}
-          isCreating={isCreating}
-          createdUrl={createdUrl}
-          savedMode={savedMode}
-          saveResult={saveResult}
-          onBuildSmartPrep={buildSmartPreview}
-          isBuildingSmartPrep={smartPreviewLoading}
-        />
+      {/* Mobile floating action bar */}
+      {selectedArtists.length > 0 && (
+        <div className="lg:hidden absolute bottom-16 left-0 right-0 px-4 pb-2 pointer-events-none">
+          <div className="pointer-events-auto animate-rise mx-auto flex max-w-md items-center gap-2 rounded-2xl border border-line bg-soot/95 backdrop-blur p-2 shadow-2xl">
+            <button
+              onClick={() => setShowSelectionSheet(true)}
+              className="flex-1 text-left px-3 py-2"
+            >
+              <p className="text-xs font-bold text-cream">
+                {selectedArtists.length} artiest{selectedArtists.length !== 1 ? 'en' : ''}
+              </p>
+              <p className="text-[10px] text-fog">Tik om je selectie te bekijken</p>
+            </button>
+            {spotifyUser ? (
+              <button
+                onClick={openWizard}
+                className="animate-pulse-ember rounded-xl bg-ember hover:bg-ember-soft px-4 py-2.5 text-sm font-bold text-white transition-colors"
+              >
+                Playlist maken
+              </button>
+            ) : (
+              <a
+                href="/api/spotify/auth"
+                className="flex items-center gap-1.5 rounded-xl bg-spotify px-4 py-2.5 text-sm font-bold text-white"
+              >
+                <SpotifyMark /> Verbind
+              </a>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* Debug panel */}
-      <DebugPanel
-        preview={preview}
-        lineupLoaded={lineup.length > 0}
-        artistCount={allArtists.length}
-      />
+      {/* Mobile selection sheet */}
+      {showSelectionSheet && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-end"
+          onClick={() => setShowSelectionSheet(false)}
+        >
+          <div
+            className="animate-sheet w-full max-h-[80dvh] rounded-t-2xl border-t border-line bg-soot flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line shrink-0" />
+            <SelectedArtistsPanel
+              selectedArtists={selectedArtists}
+              onRemove={removeArtist}
+              onClearAll={clearAll}
+              onMakePlaylist={openWizard}
+              isAuthenticated={!!spotifyUser}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Playlist wizard */}
+      {showWizard && (
+        <PlaylistWizard
+          selectedArtists={selectedArtists}
+          playlists={playlists}
+          playlistsLoading={playlistsLoading}
+          onClose={() => setShowWizard(false)}
+          onSaved={fetchPlaylists}
+        />
+      )}
     </div>
   );
 }

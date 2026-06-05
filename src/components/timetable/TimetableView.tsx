@@ -26,29 +26,28 @@ export default function TimetableView({
   return (
     <div>
       {/* Controls bar */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-800 bg-gray-950">
-        <span className="text-xs text-gray-500">
-          {allArtists.length} acts · {selectedCount} selected
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-line bg-soot">
+        <span className="text-xs text-fog">
+          Tik op een artiest om te kiezen · <span className="text-cream font-semibold">{selectedCount}</span>/{allArtists.length} gekozen
         </span>
-        <button
-          onClick={onSelectAll}
-          className="text-xs px-2 py-1 rounded bg-blue-900/60 text-blue-300 hover:bg-blue-800/80 transition-colors"
-        >
-          Select all
-        </button>
-        <button
-          onClick={onClearAll}
-          className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
-        >
-          Clear
-        </button>
+        <div className="ml-auto flex gap-1.5">
+          <button
+            onClick={onSelectAll}
+            className="text-xs font-semibold px-2.5 py-1 rounded-full bg-card-hi text-cream hover:bg-line transition-colors"
+          >
+            Alles
+          </button>
+          <button
+            onClick={onClearAll}
+            className="text-xs font-semibold px-2.5 py-1 rounded-full bg-card text-fog hover:text-cream transition-colors"
+          >
+            Wis dag
+          </button>
+        </div>
       </div>
 
       {/* Scrollable grid */}
-      <div
-        style={{ overflowX: 'auto', overflowY: 'visible' }}
-        className="relative"
-      >
+      <div style={{ overflowX: 'auto', overflowY: 'visible' }} className="relative">
         <div style={{ minWidth: 'max-content' }}>
           <TimeAxis dayStartMinutes={dayStartMinutes} dayEndMinutes={dayEndMinutes} />
           {stages.map((stage) => (

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
 /**
  * Server-side Supabase client using the service role key.
@@ -25,6 +26,11 @@ export function getSupabaseAdmin(): SupabaseClient {
 
   cachedClient = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // We never use realtime, but the client constructs it eagerly and needs a
+    // WebSocket implementation on Node < 22
+    ...(typeof WebSocket === 'undefined'
+      ? { realtime: { transport: ws as unknown as typeof WebSocket } }
+      : {}),
   });
   return cachedClient;
 }

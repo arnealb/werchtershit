@@ -139,8 +139,7 @@ export async function getValidTokens(): Promise<SpotifyTokens | null> {
 // ─── API calls ───────────────────────────────────────────────────────────────
 
 export async function spotifyFetch(path: string, token: string, opts?: RequestInit): Promise<Response> {
-  const method = opts?.method?.toUpperCase() ?? 'GET';
-  const hasBody = method === 'POST' || method === 'PUT' || method === 'PATCH';
+  const hasBody = Boolean(opts?.body);
   return fetch(`https://api.spotify.com/v1${path}`, {
     ...opts,
     headers: {
@@ -405,6 +404,78 @@ export async function getPlaylistTrackUris(
   }
 
   return { uris, ids };
+}
+
+export interface PlaylistDetails {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  imageUrl: string | null;
+  trackCount: number;
+  ownerName: string;
+  collaborative: boolean;
+}
+
+export async function getPlaylistDetails(playlistId: string, token: string): Promise<PlaylistDetails> {
+  const path = `/playlists/${playlistId}?fields=id,name,description,external_urls,images,collaborative,owner(display_name)`;
+  const res = await spotifyFetch(path, token);
+  if (!res.ok) {
+    throw await readSpotifyError('Failed to fetch playlist', 'GET', path, res);
+  }
+  const data = await res.json();
+  return {
+    id: data.id,
+    name: data.name ?? '',
+    description: data.description ?? '',
+    url: data.external_urls?.spotify ?? `https://open.spotify.com/playlist/${playlistId}`,
+    imageUrl: data.images?.[0]?.url ?? null,
+    trackCount: 0, // filled by caller from the tracks fetch
+    ownerName: data.owner?.display_name ?? '',
+    collaborative: Boolean(data.collaborative),
+  };
+}
+
+/** Full track objects for a playlist (paginated), in playlist order. */
+export async function getPlaylistTracks(playlistId: string, token: string): Promise<SpotifyTrack[]> {
+  const tracks: SpotifyTrack[] = [];
+  let path: string | null = `/playlists/${playlistId}/items?limit=100&additional_types=track`;
+
+  while (path) {
+    const res = await spotifyFetch(path, token);
+    if (!res.ok) {
+      throw await readSpotifyError('Failed to fetch playlist tracks', 'GET', path, res);
+    }
+
+    const data = await res.json();
+    for (const item of data.items ?? []) {
+      const track = item.track ?? item.item;
+      if (!track?.uri) continue;
+      tracks.push(spotifyTrackFromApi(track));
+    }
+
+    path = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+  }
+
+  return tracks;
+}
+
+export async function removeTracksFromPlaylist(
+  playlistId: string,
+  trackUris: string[],
+  token: string,
+): Promise<void> {
+  const path = `/playlists/${playlistId}/tracks`;
+  for (let i = 0; i < trackUris.length; i += 100) {
+    const batch = trackUris.slice(i, i + 100);
+    const res = await spotifyFetch(path, token, {
+      method: 'DELETE',
+      body: JSON.stringify({ tracks: batch.map((uri) => ({ uri })) }),
+    });
+    if (!res.ok) {
+      throw await readSpotifyError('Failed to remove tracks', 'DELETE', path, res);
+    }
+  }
 }
 
 function trackIdFromUri(uri: string): string | null {

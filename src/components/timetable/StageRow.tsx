@@ -3,6 +3,10 @@
 import type { Artist, StageSchedule } from '@/types/lineup';
 import ArtistBlock from './ArtistBlock';
 import {
+  GRID_BG,
+  GRID_LINE,
+  LABEL_BG,
+  LABEL_BORDER,
   PX_PER_MINUTE,
   ROW_HEIGHT,
   STAGE_LABEL_WIDTH,
@@ -26,7 +30,6 @@ export default function StageRow({
   const totalMinutes = dayEndMinutes - dayStartMinutes;
   const totalWidth = totalMinutes * PX_PER_MINUTE;
 
-  // Generate hour tick positions for vertical grid lines
   const startHour = Math.floor(dayStartMinutes / 60);
   const endHour = Math.ceil(dayEndMinutes / 60);
   const hourTicks: number[] = [];
@@ -39,7 +42,7 @@ export default function StageRow({
       style={{
         display: 'flex',
         height: ROW_HEIGHT,
-        borderBottom: '1px solid #1f2937',
+        borderBottom: `1px solid ${GRID_LINE}`,
       }}
     >
       {/* Stage name - sticky left */}
@@ -50,21 +53,21 @@ export default function StageRow({
           position: 'sticky',
           left: 0,
           zIndex: 10,
-          backgroundColor: '#0f172a',
-          borderRight: '1px solid #1e3a5f',
+          backgroundColor: LABEL_BG,
+          borderRight: `1px solid ${LABEL_BORDER}`,
           display: 'flex',
           alignItems: 'center',
-          padding: '0 12px',
+          padding: '0 10px',
         }}
       >
         <span
           style={{
             fontSize: 11,
-            fontWeight: 700,
-            color: '#60a5fa',
-            letterSpacing: '0.08em',
+            fontWeight: 800,
+            color: '#ff6a54',
+            letterSpacing: '0.07em',
             textTransform: 'uppercase',
-            lineHeight: 1.3,
+            lineHeight: 1.25,
           }}
         >
           {stage.stageName}
@@ -77,11 +80,10 @@ export default function StageRow({
           position: 'relative',
           width: totalWidth,
           flexShrink: 0,
-          backgroundColor: '#0d1117',
+          backgroundColor: GRID_BG,
           overflow: 'hidden',
         }}
       >
-        {/* Hour grid lines */}
         {hourTicks.map((left, i) => (
           <div
             key={i}
@@ -91,13 +93,12 @@ export default function StageRow({
               top: 0,
               bottom: 0,
               width: 1,
-              backgroundColor: '#1f2937',
+              backgroundColor: GRID_LINE,
               zIndex: 0,
             }}
           />
         ))}
 
-        {/* Artist blocks */}
         {stage.artists.map((artist) => (
           <ArtistBlock
             key={artist.id}
@@ -118,7 +119,7 @@ export default function StageRow({
               paddingLeft: 12,
             }}
           >
-            <span style={{ fontSize: 10, color: '#374151', fontStyle: 'italic' }}>—</span>
+            <span style={{ fontSize: 10, color: '#4d4138', fontStyle: 'italic' }}>—</span>
           </div>
         )}
       </div>

@@ -1,11 +1,7 @@
 'use client';
 
 import type { Artist } from '@/types/lineup';
-import {
-  COLOR_STYLES,
-  PX_PER_MINUTE,
-  ROW_HEIGHT,
-} from './constants';
+import { COLOR_STYLES, PX_PER_MINUTE, ROW_HEIGHT } from './constants';
 
 interface Props {
   artist: Artist;
@@ -19,10 +15,7 @@ export default function ArtistBlock({ artist, dayStartMinutes, isSelected, onTog
   const colors = COLOR_STYLES[colorKey];
 
   const leftPx = (artist.startTime.minutesFromMidnight - dayStartMinutes) * PX_PER_MINUTE;
-  const widthPx = Math.max(artist.durationMinutes * PX_PER_MINUTE - 2, 20);
-
-  const bgColor = isSelected ? colors.selectedBg : colors.bg;
-  const textColor = isSelected ? colors.text : '#d1d5db'; // dimmer when not selected
+  const widthPx = Math.max(artist.durationMinutes * PX_PER_MINUTE - 3, 24);
 
   return (
     <button
@@ -32,19 +25,19 @@ export default function ArtistBlock({ artist, dayStartMinutes, isSelected, onTog
         position: 'absolute',
         left: leftPx,
         width: widthPx,
-        height: ROW_HEIGHT - 8,
-        top: 4,
-        backgroundColor: bgColor,
-        color: textColor,
-        borderRadius: 6,
-        padding: '4px 6px',
+        height: ROW_HEIGHT - 10,
+        top: 5,
+        backgroundColor: isSelected ? colors.selectedBg : colors.bg,
+        color: isSelected ? colors.text : '#cfc6ba',
+        borderRadius: 10,
+        padding: '5px 8px',
         overflow: 'hidden',
         cursor: 'pointer',
-        transition: 'background-color 0.15s, box-shadow 0.15s, transform 0.1s',
+        transition: 'background-color 0.15s, box-shadow 0.15s, transform 0.12s',
         boxShadow: isSelected
-          ? `0 0 0 2px #fff, 0 0 0 4px ${colors.selectedBg}`
-          : '0 1px 3px rgba(0,0,0,0.4)',
-        transform: isSelected ? 'translateY(-1px)' : 'none',
+          ? `0 0 0 2px #f3ede2, 0 4px 16px ${colors.selectedBg}66`
+          : 'inset 0 0 0 1px rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.5)',
+        transform: isSelected ? 'translateY(-1px) scale(1.01)' : 'none',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -57,9 +50,9 @@ export default function ArtistBlock({ artist, dayStartMinutes, isSelected, onTog
     >
       <span
         style={{
-          fontSize: 11,
-          fontWeight: 700,
-          lineHeight: 1.2,
+          fontSize: 12,
+          fontWeight: 800,
+          lineHeight: 1.15,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -68,18 +61,20 @@ export default function ArtistBlock({ artist, dayStartMinutes, isSelected, onTog
           textTransform: 'uppercase',
         }}
       >
+        {isSelected ? '✓ ' : ''}
         {artist.name}
       </span>
       {artist.durationMinutes >= 20 && (
         <span
           style={{
-            fontSize: 9,
-            opacity: 0.8,
+            fontSize: 10,
+            opacity: 0.82,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             display: 'block',
             marginTop: 2,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {artist.startTime.display}–{artist.endTime.display}
