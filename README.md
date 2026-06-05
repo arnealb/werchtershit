@@ -51,6 +51,53 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
+## Deployment (Vercel + Supabase)
+
+Vercel's filesystem is read-only, so production uses Supabase instead of `data/lineup.json`:
+
+- **`lineup_cache`** — shared lineup data (replaces the JSON file)
+- **`user_selections`** — per-user artist selections, keyed by Spotify user id (multi-user)
+
+Locally, Supabase is optional: without `SUPABASE_URL` the app falls back to `data/lineup.json`
+and selection persistence is simply disabled.
+
+### 1. Create a Supabase project
+
+1. Go to [supabase.com](https://supabase.com) → New project
+2. Open **SQL Editor** and run the contents of [`supabase/schema.sql`](./supabase/schema.sql)
+3. Copy from **Project Settings → API**: the **Project URL** and the **`service_role` key**
+
+### 2. Seed the lineup
+
+Add the Supabase credentials to `.env.local`, then:
+
+```bash
+npm run seed-lineup
+```
+
+This uploads `data/lineup.json` to the `lineup_cache` table so production never needs to scrape on first load.
+
+### 3. Deploy on Vercel
+
+1. Push this repo to GitHub
+2. [vercel.com/new](https://vercel.com/new) → import the repo
+3. Set the environment variables (see `.env.local.example`):
+   - `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
+   - `SPOTIFY_REDIRECT_URI` = `https://<your-app>.vercel.app/api/spotify/callback`
+   - `OPENAI_API_KEY`
+   - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+4. Deploy
+
+### 4. Update Spotify
+
+In the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard), add the production
+callback URL (`https://<your-app>.vercel.app/api/spotify/callback`) as a Redirect URI.
+
+> **Note:** new Spotify apps run in *Development Mode* — only users you explicitly add under
+> **User Management** can log in. Add your testers' Spotify emails there.
+
+---
+
 ## How it works
 
 ### Timetable
