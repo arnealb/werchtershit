@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import type { PlaylistPreviewData, SpotifyPlaylistSummary } from '@/types/spotify';
 
 interface Props {
-  preview: PlaylistPreviewData;
+  preview: PlaylistPreviewData | null;
+  isSmartPreview: boolean;
   playlists: SpotifyPlaylistSummary[];
   playlistsLoading: boolean;
   playlistsError: string | null;
@@ -21,10 +22,13 @@ interface Props {
     skippedTracks: number;
     requestedTracks: number;
   };
+  onBuildSmartPrep?: (targetPlaylistId?: string) => void;
+  isBuildingSmartPrep?: boolean;
 }
 
 export default function PlaylistPreview({
   preview,
+  isSmartPreview,
   playlists,
   playlistsLoading,
   playlistsError,
@@ -36,11 +40,13 @@ export default function PlaylistPreview({
   createdUrl,
   savedMode,
   saveResult,
+  onBuildSmartPrep,
+  isBuildingSmartPrep = false,
 }: Props) {
   const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [selectedPlaylistId, setSelectedPlaylistId] = useState('');
-  const matched = preview.matchedArtists.filter((a) => a.matched);
-  const unmatched = preview.unmatchedArtists;
+  const matched = preview?.matchedArtists.filter((a) => a.matched) ?? [];
+  const unmatched = preview?.unmatchedArtists ?? [];
   const canUseExisting = playlists.length > 0;
   const selectedPlaylist = useMemo(
     () => playlists.find((playlist) => playlist.id === selectedPlaylistId),
@@ -48,6 +54,11 @@ export default function PlaylistPreview({
   );
 
   const handleConfirm = () => {
+    if (!preview && isSmartPreview && onBuildSmartPrep) {
+      onBuildSmartPrep(mode === 'existing' ? selectedPlaylistId : undefined);
+      return;
+    }
+
     if (mode === 'existing') {
       if (!selectedPlaylistId) return;
       onConfirm(selectedPlaylistId);
@@ -65,7 +76,8 @@ export default function PlaylistPreview({
           <div>
             <h2 className="text-lg font-bold text-white">Playlist Preview</h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              {matched.length} artists matched · {preview.totalTracks} tracks total
+              {isSmartPreview ? 'Smart prep' : 'Quick match'} · {matched.length} artists matched ·{' '}
+              {preview?.totalTracks ?? 0} tracks total
             </p>
           </div>
           <button
@@ -92,14 +104,26 @@ export default function PlaylistPreview({
             ))}
           </select>
           <span className="text-xs text-gray-600">
-            (playlist will have {preview.totalTracks} tracks)
+            (playlist will have {preview?.totalTracks ?? 0} tracks)
           </span>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+          {!preview && isSmartPreview && (
+            <section>
+              <h3 className="text-xs font-semibold text-green-400 uppercase tracking-widest mb-3">
+                Choose target first
+              </h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Smart Prep compares broad Spotify candidates against the target playlist before
+                asking AI to choose what you still need.
+              </p>
+            </section>
+          )}
+
           {/* Matched */}
-          {matched.length > 0 && (
+          {preview && matched.length > 0 && (
             <section>
               <h3 className="text-xs font-semibold text-green-400 uppercase tracking-widest mb-3">
                 ✓ Matched — {matched.length} artists
@@ -125,6 +149,9 @@ export default function PlaylistPreview({
                       {artist.tracks.map((track) => (
                         <li key={track.id} className="text-xs text-gray-400 truncate">
                           {track.name}
+                          {track.prepReason && (
+                            <span className="ml-2 text-gray-600">— {track.prepReason}</span>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -135,7 +162,7 @@ export default function PlaylistPreview({
           )}
 
           {/* Unmatched */}
-          {unmatched.length > 0 && (
+          {preview && unmatched.length > 0 && (
             <section>
               <h3 className="text-xs font-semibold text-yellow-500 uppercase tracking-widest mb-2">
                 ⚠ No tracks found — {unmatched.length} artists
@@ -255,16 +282,19 @@ export default function PlaylistPreview({
                   onClick={handleConfirm}
                   disabled={
                     isCreating ||
-                    preview.totalTracks === 0 ||
+                    (!preview && mode === 'existing' && !selectedPlaylistId) ||
+                    (preview?.totalTracks ?? 1) === 0 ||
                     (mode === 'existing' && !selectedPlaylistId)
                   }
                   className="flex-1 text-sm font-bold py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white transition-colors"
                 >
-                  {isCreating
-                    ? 'Saving...'
-                    : mode === 'existing'
-                      ? `Add ${preview.totalTracks} tracks`
-                      : `Create Playlist (${preview.totalTracks} tracks)`}
+                  {isCreating || isBuildingSmartPrep
+                    ? (isBuildingSmartPrep ? 'Building smart prep...' : 'Saving...')
+                    : !preview
+                      ? 'Build Smart Prep'
+                      : mode === 'existing'
+                        ? `Add ${preview.totalTracks} tracks`
+                        : `Create Playlist (${preview.totalTracks} tracks)`}
                 </button>
               </div>
             </div>

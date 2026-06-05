@@ -2,8 +2,10 @@ import type {
   SpotifyPlaylistSummary,
   SpotifyTokens,
   SpotifyTrack,
+  SpotifyTrackCandidate,
   SpotifyUser,
 } from '@/types/spotify';
+import type { Artist } from '@/types/lineup';
 import { cookies } from 'next/headers';
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID!;
@@ -195,10 +197,12 @@ export async function searchTracksByArtist(
   token: string,
   limit = 5,
 ): Promise<SpotifyTrack[]> {
+  const safeLimit = limit <= 0 ? 50 : Math.max(1, Math.min(limit, 50));
   const params = new URLSearchParams({
-    q: `artist:${artistName}`,
+    q: `artist:"${artistName}"`,
     type: 'track',
-    limit: String(Math.min(limit, 50)),
+    market: 'BE',
+    limit: String(safeLimit),
   });
   const res = await spotifyFetch(`/search?${params}`, token);
   if (!res.ok) {
@@ -212,6 +216,8 @@ export async function searchTracksByArtist(
     name: string;
     artists: { id: string; name: string }[];
     duration_ms: number;
+    popularity?: number;
+    album?: { name?: string; release_date?: string };
   }) => ({
     id: track.id,
     uri: track.uri,
@@ -220,7 +226,196 @@ export async function searchTracksByArtist(
     primaryArtist: track.artists[0]?.name ?? '',
     durationMs: track.duration_ms,
     previewUrl: null,
+    popularity: track.popularity,
+    albumName: track.album?.name,
+    releaseDate: track.album?.release_date,
   }));
+}
+
+function normalizeName(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function spotifyTrackFromApi(track: {
+  id: string;
+  uri: string;
+  name: string;
+  artists?: { id: string; name: string }[];
+  duration_ms?: number;
+  preview_url?: string | null;
+  popularity?: number;
+  album?: { name?: string; release_date?: string };
+}): SpotifyTrack {
+  return {
+    id: track.id,
+    uri: track.uri,
+    name: track.name,
+    artists: (track.artists ?? []).map((a) => ({ id: a.id, name: a.name })),
+    primaryArtist: track.artists?.[0]?.name ?? '',
+    durationMs: track.duration_ms ?? 0,
+    previewUrl: track.preview_url ?? null,
+    popularity: track.popularity,
+    albumName: track.album?.name,
+    releaseDate: track.album?.release_date,
+  };
+}
+
+async function searchSpotifyArtist(artistName: string, token: string): Promise<{ id: string; name: string } | null> {
+  const params = new URLSearchParams({
+    q: artistName,
+    type: 'artist',
+    market: 'BE',
+    limit: '10',
+  });
+  const path = `/search?${params}`;
+  const res = await spotifyFetch(path, token);
+  if (!res.ok) {
+    throw await readSpotifyError(`Failed to search artist "${artistName}"`, 'GET', path, res);
+  }
+
+  const data = await res.json();
+  const artists = data.artists?.items ?? [];
+  const normalizedName = normalizeName(artistName);
+  return (
+    artists.find((artist: { name: string }) => normalizeName(artist.name) === normalizedName) ??
+    artists.find((artist: { name: string }) => normalizeName(artist.name).includes(normalizedName)) ??
+    artists.find((artist: { name: string }) => normalizedName.includes(normalizeName(artist.name))) ??
+    null
+  );
+}
+
+async function getArtistTopTracks(artistId: string, token: string): Promise<SpotifyTrack[]> {
+  const path = `/artists/${artistId}/top-tracks?market=BE`;
+  const res = await spotifyFetch(path, token);
+  if (!res.ok) {
+    throw await readSpotifyError('Failed to fetch artist top tracks', 'GET', path, res);
+  }
+
+  const data = await res.json();
+  return (data.tracks ?? []).map(spotifyTrackFromApi);
+}
+
+async function getRecentArtistAlbumTracks(
+  artistId: string,
+  token: string,
+  maxAlbums = 4,
+): Promise<SpotifyTrack[]> {
+  const albumsPath = `/artists/${artistId}/albums?include_groups=album,single&market=BE&limit=10`;
+  const albumsRes = await spotifyFetch(albumsPath, token);
+  if (!albumsRes.ok) {
+    throw await readSpotifyError('Failed to fetch artist albums', 'GET', albumsPath, albumsRes);
+  }
+
+  const albumData = await albumsRes.json();
+  const albums = (albumData.items ?? [])
+    .filter((album: { id?: string }) => album.id)
+    .sort((a: { release_date?: string }, b: { release_date?: string }) =>
+      String(b.release_date ?? '').localeCompare(String(a.release_date ?? '')),
+    )
+    .slice(0, maxAlbums);
+
+  const albumTracks = await Promise.allSettled(
+    albums.map(async (album: { id: string; name?: string; release_date?: string }) => {
+      const tracksPath = `/albums/${album.id}/tracks?market=BE&limit=20`;
+      const tracksRes = await spotifyFetch(tracksPath, token);
+      if (!tracksRes.ok) {
+        throw await readSpotifyError('Failed to fetch album tracks', 'GET', tracksPath, tracksRes);
+      }
+      const tracksData = await tracksRes.json();
+      return (tracksData.items ?? []).map((track: {
+        id: string;
+        uri: string;
+        name: string;
+        artists?: { id: string; name: string }[];
+        duration_ms?: number;
+        preview_url?: string | null;
+      }) => ({
+        ...spotifyTrackFromApi({
+          ...track,
+          album: { name: album.name, release_date: album.release_date },
+        }),
+      }));
+    }),
+  );
+
+  return albumTracks.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
+}
+
+export async function getArtistPrepCandidates(
+  festivalArtist: Artist,
+  token: string,
+  existingUris = new Set<string>(),
+): Promise<SpotifyTrackCandidate[]> {
+  const spotifyArtist = await searchSpotifyArtist(festivalArtist.name, token);
+  if (!spotifyArtist) return [];
+
+  const sources = await Promise.allSettled([
+    getArtistTopTracks(spotifyArtist.id, token),
+    searchTracksByArtist(spotifyArtist.name, token, 10),
+    getRecentArtistAlbumTracks(spotifyArtist.id, token),
+  ]);
+  const sourceNames = ['spotify_top_tracks', 'spotify_search', 'recent_release'] as const;
+  const normalizedSpotifyArtistName = normalizeName(spotifyArtist.name);
+
+  const byUri = new Map<string, SpotifyTrackCandidate>();
+  const addTracks = (tracks: SpotifyTrack[], source: string) => {
+    for (const track of tracks) {
+      if (!track.uri) continue;
+      if (!track.artists.some((artist) => normalizeName(artist.name) === normalizedSpotifyArtistName)) {
+        continue;
+      }
+
+      const existing = byUri.get(track.uri);
+      if (existing) {
+        if (!existing.sources.includes(source)) existing.sources.push(source);
+        existing.popularity ??= track.popularity;
+        existing.albumName ??= track.albumName;
+        existing.releaseDate ??= track.releaseDate;
+        continue;
+      }
+
+      byUri.set(track.uri, {
+        ...track,
+        festivalArtistId: festivalArtist.id,
+        festivalArtistName: festivalArtist.name,
+        spotifyArtistName: spotifyArtist.name,
+        sources: [source],
+        alreadyInPlaylist: existingUris.has(track.uri),
+      });
+    }
+  };
+
+  sources.forEach((result, index) => {
+    const source = sourceNames[index];
+    if (result.status === 'fulfilled') {
+      addTracks(result.value, source);
+      return;
+    }
+
+    console.warn('[spotify] Failed to build smart prep source', {
+      festivalArtist: festivalArtist.name,
+      spotifyArtist: spotifyArtist.name,
+      source,
+      error: String(result.reason),
+    });
+  });
+
+  console.info('[spotify] Built prep candidates for artist', {
+    festivalArtist: festivalArtist.name,
+    spotifyArtist: spotifyArtist.name,
+    candidateCount: byUri.size,
+    sourceCounts: [...byUri.values()].reduce<Record<string, number>>((acc, track) => {
+      for (const source of track.sources) acc[source] = (acc[source] ?? 0) + 1;
+      return acc;
+    }, {}),
+  });
+
+  return [...byUri.values()];
 }
 
 export async function getEditablePlaylists(token: string): Promise<SpotifyPlaylistSummary[]> {
@@ -242,11 +437,18 @@ export async function getEditablePlaylists(token: string): Promise<SpotifyPlayli
       if (!isOwner || seenPlaylistIds.has(playlist.id)) continue;
       seenPlaylistIds.add(playlist.id);
 
+      const trackCount =
+        playlist.tracks?.total ??
+        playlist.items?.total ??
+        playlist.total_tracks ??
+        playlist.totalTracks ??
+        0;
+
       playlists.push({
         id: playlist.id,
         name: playlist.name,
         url: playlist.external_urls?.spotify ?? `https://open.spotify.com/playlist/${playlist.id}`,
-        trackCount: playlist.tracks?.total ?? 0,
+        trackCount,
         ownerName: playlist.owner?.display_name ?? playlist.owner?.id ?? '',
         isOwner,
         collaborative,
@@ -257,7 +459,23 @@ export async function getEditablePlaylists(token: string): Promise<SpotifyPlayli
     path = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
   }
 
-  return playlists;
+  return Promise.all(
+    playlists.map(async (playlist) => ({
+      ...playlist,
+      trackCount:
+        playlist.trackCount > 0
+          ? playlist.trackCount
+          : await getPlaylistItemCount(playlist.id, token),
+    })),
+  );
+}
+
+async function getPlaylistItemCount(playlistId: string, token: string): Promise<number> {
+  const path = `/playlists/${playlistId}/items?limit=1&additional_types=track`;
+  const res = await spotifyFetch(path, token);
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return data.total ?? 0;
 }
 
 export async function addTracksToPlaylist(

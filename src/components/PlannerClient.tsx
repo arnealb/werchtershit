@@ -34,10 +34,16 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | null>(initialSpotifyUser);
 
+  // Selection persistence (Supabase, keyed by Spotify user)
+  const [selectionSynced, setSelectionSynced] = useState(false);
+  const [persistenceEnabled, setPersistenceEnabled] = useState(false);
+
   // Preview state
   const [showPreview, setShowPreview] = useState(false);
   const [preview, setPreview] = useState<PlaylistPreviewData | null>(null);
+  const [previewMode, setPreviewMode] = useState<'quick' | 'smart'>('quick');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [smartPreviewLoading, setSmartPreviewLoading] = useState(false);
   const [maxTracksPerArtist, setMaxTracksPerArtist] = useState(5);
   const [isCreating, setIsCreating] = useState(false);
   const [createdUrl, setCreatedUrl] = useState<string | undefined>();
@@ -85,6 +91,50 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
 
   const clearAll = useCallback(() => setSelectedIds(new Set()), []);
 
+  // Load saved selection from Supabase once the Spotify user is known
+  useEffect(() => {
+    if (!spotifyUser) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/selections');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+
+        setPersistenceEnabled(data.persistence === 'enabled');
+        const saved: string[] = data.selection?.artistIds ?? [];
+        if (saved.length > 0) {
+          setSelectedIds((prev) => new Set([...prev, ...saved]));
+        }
+      } catch (e) {
+        console.error('Failed to load saved selection:', e);
+      } finally {
+        if (!cancelled) setSelectionSynced(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [spotifyUser]);
+
+  // Debounced save of the selection whenever it changes
+  useEffect(() => {
+    if (!spotifyUser || !selectionSynced || !persistenceEnabled) return;
+
+    const handle = setTimeout(() => {
+      fetch('/api/selections', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artistIds: [...selectedIds] }),
+      }).catch((e) => console.error('Failed to save selection:', e));
+    }, 800);
+
+    return () => clearTimeout(handle);
+  }, [selectedIds, spotifyUser, selectionSynced, persistenceEnabled]);
+
   const removeArtist = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -117,12 +167,49 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   );
 
   const handlePreview = useCallback(async () => {
+    setPreviewMode('quick');
     await fetchPreview([...selectedIds], maxTracksPerArtist);
     setCreatedUrl(undefined);
     setSavedMode(undefined);
     setSaveResult(undefined);
     setShowPreview(true);
   }, [selectedIds, maxTracksPerArtist, fetchPreview]);
+
+  const handleSmartPreview = useCallback(async () => {
+    setPreviewMode('smart');
+    setPreview(null);
+    setCreatedUrl(undefined);
+    setSavedMode(undefined);
+    setSaveResult(undefined);
+    setShowPreview(true);
+  }, []);
+
+  const buildSmartPreview = useCallback(async (targetPlaylistId?: string) => {
+    setSmartPreviewLoading(true);
+    try {
+      const res = await fetch('/api/spotify/smart-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artistIds: [...selectedIds],
+          maxTracksPerArtist,
+          targetPlaylistId,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setPreview(data);
+      setCreatedUrl(undefined);
+      setSavedMode(undefined);
+      setSaveResult(undefined);
+      setShowPreview(true);
+    } catch (e) {
+      console.error('Smart preview error:', e);
+      alert('Failed to build smart prep: ' + String(e));
+    } finally {
+      setSmartPreviewLoading(false);
+    }
+  }, [selectedIds, maxTracksPerArtist]);
 
   const fetchPlaylists = useCallback(async () => {
     setPlaylistsLoading(true);
@@ -149,6 +236,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   // Re-fetch when slider changes while preview is open
   useEffect(() => {
     if (!showPreview || selectedIds.size === 0) return;
+    if (preview?.mode === 'smart') return;
     fetchPreview([...selectedIds], maxTracksPerArtist);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxTracksPerArtist]);
@@ -163,6 +251,9 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
           artistIds: [...selectedIds],
           maxTracksPerArtist,
           targetPlaylistId,
+          trackUris: preview?.matchedArtists.flatMap((artist) =>
+            artist.tracks.map((track) => track.uri),
+          ),
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -181,7 +272,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
     } finally {
       setIsCreating(false);
     }
-  }, [fetchPlaylists, selectedIds, maxTracksPerArtist]);
+  }, [fetchPlaylists, preview, selectedIds, maxTracksPerArtist]);
 
   const handleDisconnect = async () => {
     await fetch('/api/spotify/me', { method: 'DELETE' });
@@ -279,16 +370,19 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
             onRemove={removeArtist}
             onClearAll={clearAll}
             onPreview={handlePreview}
+            onSmartPreview={handleSmartPreview}
             isAuthenticated={!!spotifyUser}
             isPreviewLoading={previewLoading}
+            isSmartPreviewLoading={smartPreviewLoading}
           />
         </aside>
       </div>
 
       {/* Preview modal */}
-      {showPreview && preview && (
+      {showPreview && (preview || previewMode === 'smart') && (
         <PlaylistPreview
           preview={preview}
+          isSmartPreview={previewMode === 'smart'}
           playlists={playlists}
           playlistsLoading={playlistsLoading}
           playlistsError={playlistsError}
@@ -303,6 +397,8 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
           createdUrl={createdUrl}
           savedMode={savedMode}
           saveResult={saveResult}
+          onBuildSmartPrep={buildSmartPreview}
+          isBuildingSmartPrep={smartPreviewLoading}
         />
       )}
 

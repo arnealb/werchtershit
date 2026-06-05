@@ -20,10 +20,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { artistIds, maxTracksPerArtist = 5, targetPlaylistId } = body as {
+  const { artistIds, maxTracksPerArtist = 5, targetPlaylistId, trackUris: explicitTrackUris } = body as {
     artistIds: string[];
     maxTracksPerArtist?: number;
     targetPlaylistId?: string;
+    trackUris?: string[];
   };
 
   if (!artistIds || artistIds.length === 0) {
@@ -37,25 +38,28 @@ export async function POST(request: NextRequest) {
     );
     const selectedArtists = allArtists.filter((a) => artistIds.includes(a.id));
 
-    // Search tracks per artist in parallel
-    const results = await Promise.allSettled(
-      selectedArtists.map((artist) =>
-        searchTracksByArtist(artist.name, tokens.accessToken, maxTracksPerArtist),
-      ),
-    );
+    let trackUris = [...new Set(explicitTrackUris ?? [])];
+    if (trackUris.length === 0) {
+      // Search tracks per artist in parallel
+      const results = await Promise.allSettled(
+        selectedArtists.map((artist) =>
+          searchTracksByArtist(artist.name, tokens.accessToken, maxTracksPerArtist),
+        ),
+      );
 
-    const matchedArtists: MatchedArtist[] = selectedArtists.map((artist, i) => {
-      const result = results[i];
-      const tracks = result.status === 'fulfilled' ? result.value : [];
-      return {
-        festivalArtistId: artist.id,
-        festivalArtistName: artist.name,
-        matched: tracks.length > 0,
-        tracks,
-      };
-    });
+      const matchedArtists: MatchedArtist[] = selectedArtists.map((artist, i) => {
+        const result = results[i];
+        const tracks = result.status === 'fulfilled' ? result.value : [];
+        return {
+          festivalArtistId: artist.id,
+          festivalArtistName: artist.name,
+          matched: tracks.length > 0,
+          tracks,
+        };
+      });
 
-    const trackUris = [...new Set(matchedArtists.flatMap((a) => a.tracks.map((t) => t.uri)))];
+      trackUris = [...new Set(matchedArtists.flatMap((a) => a.tracks.map((t) => t.uri)))];
+    }
 
     if (trackUris.length === 0) {
       return NextResponse.json({ error: 'No tracks matched — nothing to add to playlist' }, { status: 400 });

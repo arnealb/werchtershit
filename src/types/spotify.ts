@@ -35,6 +35,19 @@ export interface SpotifyTrack {
   primaryArtist: string;
   durationMs: number;
   previewUrl: string | null;
+  popularity?: number;
+  albumName?: string;
+  releaseDate?: string;
+  sources?: string[];
+  prepReason?: string;
+}
+
+export interface SpotifyTrackCandidate extends SpotifyTrack {
+  festivalArtistId: string;
+  festivalArtistName: string;
+  spotifyArtistName: string;
+  sources: string[];
+  alreadyInPlaylist: boolean;
 }
 
 export interface MatchedArtist {
@@ -50,4 +63,5 @@ export interface PlaylistPreviewData {
   unmatchedArtists: { id: string; name: string }[];
   totalTracks: number;
   selectedDays: string[];
+  mode?: 'quick' | 'smart';
 }

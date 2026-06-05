@@ -8,8 +8,10 @@ interface Props {
   onRemove: (artistId: string) => void;
   onClearAll: () => void;
   onPreview: () => void;
+  onSmartPreview: () => void;
   isAuthenticated: boolean;
   isPreviewLoading: boolean;
+  isSmartPreviewLoading: boolean;
 }
 
 export default function SelectedArtistsPanel({
@@ -17,9 +19,12 @@ export default function SelectedArtistsPanel({
   onRemove,
   onClearAll,
   onPreview,
+  onSmartPreview,
   isAuthenticated,
   isPreviewLoading,
+  isSmartPreviewLoading,
 }: Props) {
+  const isLoading = isPreviewLoading || isSmartPreviewLoading;
   const byDay = selectedArtists.reduce<Record<string, Artist[]>>((acc, a) => {
     (acc[a.day] ??= []).push(a);
     return acc;
@@ -92,16 +97,25 @@ export default function SelectedArtistsPanel({
             Connect Spotify
           </a>
         ) : (
-          <button
-            onClick={onPreview}
-            disabled={selectedArtists.length === 0 || isPreviewLoading}
-            className="w-full text-xs font-bold py-2.5 px-3 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white transition-colors"
-          >
-            {isPreviewLoading ? 'Matching tracks…' : 'Preview & Create Playlist →'}
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={onSmartPreview}
+              disabled={selectedArtists.length === 0 || isLoading}
+              className="w-full text-xs font-bold py-2.5 px-3 rounded-lg bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white transition-colors"
+            >
+              {isSmartPreviewLoading ? 'Building smart prep...' : 'Smart Prep Playlist'}
+            </button>
+            <button
+              onClick={onPreview}
+              disabled={selectedArtists.length === 0 || isLoading}
+              className="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition-colors"
+            >
+              {isPreviewLoading ? 'Matching tracks...' : 'Quick Playlist'}
+            </button>
+          </div>
         )}
         <p className="text-[10px] text-gray-700 text-center">
-          searches Spotify tracks for selected artists
+          smart prep uses Spotify candidates and AI ranking
         </p>
       </div>
     </div>
