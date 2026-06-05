@@ -1,10 +1,10 @@
 'use client';
 
 import type { Artist } from '@/types/lineup';
-import { DAY_LABELS_NL } from './dayLabels';
 
 interface Props {
   selectedArtists: Artist[];
+  dayLabels: Map<string, string>;
   onRemove: (artistId: string) => void;
   onClearAll: () => void;
   onMakePlaylist: () => void;
@@ -13,6 +13,7 @@ interface Props {
 
 export default function SelectedArtistsPanel({
   selectedArtists,
+  dayLabels,
   onRemove,
   onClearAll,
   onMakePlaylist,
@@ -54,7 +55,7 @@ export default function SelectedArtistsPanel({
           Object.entries(byDay).map(([day, artists]) => (
             <div key={day}>
               <p className="text-[10px] font-bold text-ember-soft uppercase tracking-widest mb-1.5 px-1">
-                {DAY_LABELS_NL[day as keyof typeof DAY_LABELS_NL] ?? day}
+                {dayLabels.get(day) ?? day}
               </p>
               <div className="space-y-1">
                 {artists.map((a) => (

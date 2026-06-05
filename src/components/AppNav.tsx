@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   {
-    href: '/planner',
-    label: 'Line-up',
+    href: '/',
+    label: 'Events',
     icon: (active: boolean) => (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 1.8}>
         <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -34,7 +34,13 @@ export default function AppNav() {
     <nav className="shrink-0 border-t border-line bg-soot/95 backdrop-blur pb-safe">
       <div className="mx-auto flex max-w-lg items-stretch">
         {TABS.map((tab) => {
-          const active = pathname?.startsWith(tab.href) ?? false;
+          const active =
+            tab.href === '/'
+              ? pathname === '/' ||
+                (pathname?.startsWith('/e/') ?? false) ||
+                (pathname?.startsWith('/events') ?? false) ||
+                (pathname?.startsWith('/planner') ?? false)
+              : pathname?.startsWith(tab.href) ?? false;
           return (
             <Link
               key={tab.href}

@@ -15,8 +15,13 @@ function isValidArtistIds(value: unknown): value is string[] {
   );
 }
 
-/** Load the saved artist selection for a Spotify user. Returns null when none saved. */
-export async function getUserSelection(spotifyUserId: string): Promise<UserSelection | null> {
+export const DEFAULT_EVENT_SLUG = 'rock-werchter-2026';
+
+/** Load the saved artist selection for a Spotify user + event. Returns null when none saved. */
+export async function getUserSelection(
+  spotifyUserId: string,
+  eventSlug: string = DEFAULT_EVENT_SLUG,
+): Promise<UserSelection | null> {
   if (!isSupabaseConfigured()) return null;
 
   const supabase = getSupabaseAdmin();
@@ -24,6 +29,7 @@ export async function getUserSelection(spotifyUserId: string): Promise<UserSelec
     .from('user_selections')
     .select('artist_ids, updated_at')
     .eq('spotify_user_id', spotifyUserId)
+    .eq('event_slug', eventSlug)
     .maybeSingle();
 
   if (error) {
@@ -35,11 +41,12 @@ export async function getUserSelection(spotifyUserId: string): Promise<UserSelec
   return { artistIds: data.artist_ids, updatedAt: data.updated_at ?? null };
 }
 
-/** Persist the artist selection for a Spotify user (upsert). */
+/** Persist the artist selection for a Spotify user + event (upsert). */
 export async function saveUserSelection(
   spotifyUserId: string,
   displayName: string,
   artistIds: unknown,
+  eventSlug: string = DEFAULT_EVENT_SLUG,
 ): Promise<UserSelection> {
   if (!isValidArtistIds(artistIds)) {
     throw new Error(`artistIds must be an array of at most ${MAX_SELECTION_SIZE} strings`);
@@ -52,6 +59,7 @@ export async function saveUserSelection(
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from('user_selections').upsert({
     spotify_user_id: spotifyUserId,
+    event_slug: eventSlug,
     display_name: displayName,
     artist_ids: artistIds,
     updated_at: updatedAt,

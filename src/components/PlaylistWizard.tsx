@@ -15,6 +15,8 @@ interface SaveResult {
 }
 
 interface Props {
+  eventSlug: string;
+  eventName: string;
   selectedArtists: Artist[];
   playlists: SpotifyPlaylistSummary[];
   playlistsLoading: boolean;
@@ -55,6 +57,8 @@ const BUILD_MESSAGES = [
 ];
 
 export default function PlaylistWizard({
+  eventSlug,
+  eventName,
   selectedArtists,
   playlists,
   playlistsLoading,
@@ -67,7 +71,7 @@ export default function PlaylistWizard({
   const [target, setTarget] = useState<'new' | 'existing'>('new');
   const [targetPlaylistId, setTargetPlaylistId] = useState('');
   const [playlistQuery, setPlaylistQuery] = useState('');
-  const [playlistName, setPlaylistName] = useState('Rock Werchter 2026 — Mijn selectie');
+  const [playlistName, setPlaylistName] = useState(`${eventName} — Mijn selectie`);
   const [preview, setPreview] = useState<PlaylistPreviewData | null>(null);
   const [removedUris, setRemovedUris] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +129,7 @@ export default function PlaylistWizard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           artistIds,
+          eventSlug,
           maxTracksPerArtist: tracksPerArtist,
           targetPlaylistId: target === 'existing' ? targetPlaylistId : undefined,
         }),
@@ -149,6 +154,7 @@ export default function PlaylistWizard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           artistIds,
+          eventSlug,
           maxTracksPerArtist: tracksPerArtist,
           targetPlaylistId: target === 'existing' ? targetPlaylistId : undefined,
           trackUris: keptTrackUris,

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens, searchTracksByArtist } from '@/lib/spotify';
-import { getLineupData } from '@/lib/lineup';
+import { getEventLineup } from '@/lib/events';
 import type { MatchedArtist } from '@/types/spotify';
-import { compareArtistsChronologically, type Artist } from '@/types/lineup';
+import { makeChronologicalComparator, type Artist } from '@/types/lineup';
 
 export async function POST(request: NextRequest) {
   const tokens = await getValidTokens();
@@ -11,9 +11,10 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { artistIds, maxTracksPerArtist = 5 } = body as {
+  const { artistIds, maxTracksPerArtist = 5, eventSlug } = body as {
     artistIds: string[];
     maxTracksPerArtist?: number;
+    eventSlug?: string;
   };
 
   if (!artistIds || artistIds.length === 0) {
@@ -21,13 +22,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const lineup = await getLineupData();
+    const eventLineup = await getEventLineup(eventSlug);
+    if (!eventLineup) {
+      return NextResponse.json({ error: 'Event niet gevonden' }, { status: 404 });
+    }
+    const { lineup } = eventLineup;
     const allArtists: Artist[] = lineup.flatMap((day) =>
       day.stages.flatMap((stage) => stage.artists),
     );
     const selectedArtists = allArtists
       .filter((a) => artistIds.includes(a.id))
-      .sort(compareArtistsChronologically);
+      .sort(makeChronologicalComparator(lineup));
 
     if (selectedArtists.length === 0) {
       return NextResponse.json({ error: 'No matching artists found in lineup' }, { status: 400 });

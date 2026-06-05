@@ -1,14 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import type { Artist, Day, LineupData } from '@/types/lineup';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { formatDayLabel, type Artist, type LineupData } from '@/types/lineup';
 import type { SpotifyPlaylistSummary } from '@/types/spotify';
 import TimetableView from './timetable/TimetableView';
 import SelectedArtistsPanel, { SpotifyMark } from './SelectedArtistsPanel';
 import PlaylistWizard from './PlaylistWizard';
-import { DAY_DATE_NL, DAY_SHORT_NL } from './dayLabels';
-
-const DAYS: Day[] = ['thursday', 'friday', 'saturday', 'sunday'];
 
 interface SpotifyUser {
   id: string;
@@ -16,13 +14,14 @@ interface SpotifyUser {
 }
 
 interface Props {
+  event: { slug: string; name: string };
   initialLineup: LineupData;
   initialSpotifyUser: SpotifyUser | null;
 }
 
-export default function PlannerClient({ initialLineup, initialSpotifyUser }: Props) {
+export default function PlannerClient({ event, initialLineup, initialSpotifyUser }: Props) {
   const [lineup] = useState<LineupData>(initialLineup);
-  const [activeDay, setActiveDay] = useState<Day>('thursday');
+  const [activeDay, setActiveDay] = useState<string>(initialLineup[0]?.day ?? '');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | null>(initialSpotifyUser);
 
@@ -38,6 +37,11 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
   const activeDaySchedule = lineup.find((d) => d.day === activeDay);
   const allArtists = lineup.flatMap((d) => d.stages.flatMap((s) => s.artists));
   const selectedArtists = allArtists.filter((a) => selectedIds.has(a.id));
+
+  const dayLabels = useMemo(
+    () => new Map(lineup.map((day) => [day.day, formatDayLabel(day)])),
+    [lineup],
+  );
 
   const toggleArtist = useCallback((artist: Artist) => {
     setSelectedIds((prev) => {
@@ -88,7 +92,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
 
     (async () => {
       try {
-        const res = await fetch('/api/selections');
+        const res = await fetch(`/api/selections?event=${encodeURIComponent(event.slug)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;
@@ -108,7 +112,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
     return () => {
       cancelled = true;
     };
-  }, [spotifyUser]);
+  }, [spotifyUser, event.slug]);
 
   // Debounced save of the selection whenever it changes
   useEffect(() => {
@@ -118,12 +122,12 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
       fetch('/api/selections', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistIds: [...selectedIds] }),
+        body: JSON.stringify({ artistIds: [...selectedIds], eventSlug: event.slug }),
       }).catch((e) => console.error('Failed to save selection:', e));
     }, 800);
 
     return () => clearTimeout(handle);
-  }, [selectedIds, spotifyUser, selectionSynced, persistenceEnabled]);
+  }, [selectedIds, spotifyUser, selectionSynced, persistenceEnabled, event.slug]);
 
   const fetchPlaylists = useCallback(async () => {
     setPlaylistsLoading(true);
@@ -160,11 +164,18 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
       {/* Top bar */}
       <header className="shrink-0 border-b border-line bg-soot/90 backdrop-blur pt-safe">
         <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-          <h1 className="font-display text-xl leading-none text-cream uppercase">
-            Werchter <span className="text-ember">’26</span>
+          <Link
+            href="/"
+            className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-card text-fog hover:text-cream transition-colors"
+            aria-label="Naar alle events"
+          >
+            ‹
+          </Link>
+          <h1 className="font-display text-lg leading-none text-cream uppercase truncate">
+            {event.name}
           </h1>
 
-          <div className="ml-auto">
+          <div className="ml-auto shrink-0">
             {spotifyUser ? (
               <button
                 onClick={handleDisconnect}
@@ -186,39 +197,40 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
         </div>
 
         {/* Day pills */}
-        <nav className="flex gap-1.5 px-4 pb-2.5 overflow-x-auto no-scrollbar">
-          {DAYS.map((day) => {
-            const count = lineup
-              .find((d) => d.day === day)
-              ?.stages.flatMap((s) => s.artists)
-              .filter((a) => selectedIds.has(a.id)).length ?? 0;
-            const active = activeDay === day;
-            return (
-              <button
-                key={day}
-                onClick={() => setActiveDay(day)}
-                className={[
-                  'shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-colors',
-                  active
-                    ? 'bg-ember text-white'
-                    : 'bg-card text-fog hover:text-cream',
-                ].join(' ')}
-              >
-                {DAY_SHORT_NL[day]} {DAY_DATE_NL[day].split(' ')[0]}
-                {count > 0 && (
-                  <span
-                    className={[
-                      'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]',
-                      active ? 'bg-white/25' : 'bg-ember/20 text-ember-soft',
-                    ].join(' ')}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        {lineup.length > 1 && (
+          <nav className="flex gap-1.5 px-4 pb-2.5 overflow-x-auto no-scrollbar">
+            {lineup.map((day) => {
+              const count = day.stages
+                .flatMap((s) => s.artists)
+                .filter((a) => selectedIds.has(a.id)).length;
+              const active = activeDay === day.day;
+              return (
+                <button
+                  key={day.day}
+                  onClick={() => setActiveDay(day.day)}
+                  className={[
+                    'shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-colors',
+                    active
+                      ? 'bg-ember text-white'
+                      : 'bg-card text-fog hover:text-cream',
+                  ].join(' ')}
+                >
+                  {dayLabels.get(day.day) ?? day.day}
+                  {count > 0 && (
+                    <span
+                      className={[
+                        'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]',
+                        active ? 'bg-white/25' : 'bg-ember/20 text-ember-soft',
+                      ].join(' ')}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        )}
       </header>
 
       {/* Main content */}
@@ -245,6 +257,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
         <aside className="hidden lg:flex w-72 shrink-0 flex-col border-l border-line">
           <SelectedArtistsPanel
             selectedArtists={selectedArtists}
+            dayLabels={dayLabels}
             onRemove={removeArtist}
             onClearAll={clearAll}
             onMakePlaylist={openWizard}
@@ -298,6 +311,7 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line shrink-0" />
             <SelectedArtistsPanel
               selectedArtists={selectedArtists}
+              dayLabels={dayLabels}
               onRemove={removeArtist}
               onClearAll={clearAll}
               onMakePlaylist={openWizard}
@@ -310,6 +324,8 @@ export default function PlannerClient({ initialLineup, initialSpotifyUser }: Pro
       {/* Playlist wizard */}
       {showWizard && (
         <PlaylistWizard
+          eventSlug={event.slug}
+          eventName={event.name}
           selectedArtists={selectedArtists}
           playlists={playlists}
           playlistsLoading={playlistsLoading}

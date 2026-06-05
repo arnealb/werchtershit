@@ -35,7 +35,8 @@ export interface Artist {
   /** URL slug, e.g. "a-perfect-circle" */
   id: string;
   name: string;
-  day: Day;
+  /** Day key within the event (e.g. "thursday" or an ISO date) */
+  day: string;
   stage: string;
   startTime: PerformanceTime;
   endTime: PerformanceTime;
@@ -50,7 +51,8 @@ export interface StageSchedule {
 }
 
 export interface DaySchedule {
-  day: Day;
+  /** Day key within the event (e.g. "thursday" or an ISO date) */
+  day: string;
   /** ISO date string e.g. "2026-07-02" */
   date: string;
   stages: StageSchedule[];
@@ -62,17 +64,28 @@ export interface DaySchedule {
 
 export type LineupData = DaySchedule[];
 
-export const DAY_ORDER: Record<Day, number> = {
-  thursday: 0,
-  friday: 1,
-  saturday: 2,
-  sunday: 3,
-};
+/**
+ * Timetable order derived from the lineup itself: day order as listed,
+ * then set start time — playlists follow the festival.
+ */
+export function makeChronologicalComparator(lineup: LineupData): (a: Artist, b: Artist) => number {
+  const dayIndex = new Map(lineup.map((day, index) => [day.day, index]));
+  return (a, b) =>
+    (dayIndex.get(a.day) ?? 0) - (dayIndex.get(b.day) ?? 0) ||
+    a.startTime.minutesFromMidnight - b.startTime.minutesFromMidnight;
+}
 
-/** Timetable order: day first, then set start time — playlists follow the festival. */
-export function compareArtistsChronologically(a: Artist, b: Artist): number {
-  return (
-    (DAY_ORDER[a.day] ?? 0) - (DAY_ORDER[b.day] ?? 0) ||
-    a.startTime.minutesFromMidnight - b.startTime.minutesFromMidnight
-  );
+/** Human label for a day: prefer the date ("vr 3 jul"), fall back to the raw key. */
+export function formatDayLabel(daySchedule: { day: string; date: string }): string {
+  if (daySchedule.date) {
+    const parsed = new Date(`${daySchedule.date}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return new Intl.DateTimeFormat('nl-BE', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }).format(parsed);
+    }
+  }
+  return daySchedule.day;
 }

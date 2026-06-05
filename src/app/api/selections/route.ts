@@ -14,7 +14,7 @@ async function getAuthenticatedUser() {
 }
 
 /** Load the saved artist selection for the logged-in Spotify user. */
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ selection: null, persistence: 'disabled' });
   }
@@ -24,8 +24,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
+  const eventSlug = request.nextUrl.searchParams.get('event') ?? undefined;
+
   try {
-    const selection = await getUserSelection(user.id);
+    const selection = await getUserSelection(user.id, eventSlug);
     return NextResponse.json({ selection, persistence: 'enabled' });
   } catch (err) {
     console.error('[/api/selections] GET error:', err);
@@ -51,10 +53,15 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const artistIds = (body as { artistIds?: unknown })?.artistIds;
+  const { artistIds, eventSlug } = (body ?? {}) as { artistIds?: unknown; eventSlug?: unknown };
 
   try {
-    const selection = await saveUserSelection(user.id, user.displayName, artistIds);
+    const selection = await saveUserSelection(
+      user.id,
+      user.displayName,
+      artistIds,
+      typeof eventSlug === 'string' && eventSlug ? eventSlug.slice(0, 80) : undefined,
+    );
     return NextResponse.json({ ok: true, selection });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to save selection';

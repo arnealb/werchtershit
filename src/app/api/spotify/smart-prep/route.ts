@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLineupData } from '@/lib/lineup';
+import { getEventLineup } from '@/lib/events';
 import { rankSmartPrepTracks } from '@/lib/openai';
 import {
   getPlaylistTrackUris,
@@ -7,7 +7,7 @@ import {
   SpotifyApiError,
 } from '@/lib/spotify';
 import { getArtistPrepCandidates } from '@/lib/prep-candidates';
-import { compareArtistsChronologically, type Artist } from '@/types/lineup';
+import { makeChronologicalComparator, type Artist } from '@/types/lineup';
 import type { MatchedArtist, SpotifyTrackCandidate } from '@/types/spotify';
 
 // Smart prep fans out many Spotify + setlist.fm calls; allow up to a minute on Vercel
@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { artistIds, maxTracksPerArtist = 5, targetPlaylistId } = body as {
+  const { artistIds, maxTracksPerArtist = 5, targetPlaylistId, eventSlug } = body as {
     artistIds: string[];
     maxTracksPerArtist?: number;
     targetPlaylistId?: string;
+    eventSlug?: string;
   };
 
   if (!artistIds || artistIds.length === 0) {
@@ -76,13 +77,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const lineup = await getLineupData();
+    const eventLineup = await getEventLineup(eventSlug);
+    if (!eventLineup) {
+      return NextResponse.json({ error: 'Event niet gevonden' }, { status: 404 });
+    }
+    const { lineup } = eventLineup;
     const allArtists: Artist[] = lineup.flatMap((day) =>
       day.stages.flatMap((stage) => stage.artists),
     );
     const selectedArtists = allArtists
       .filter((artist) => artistIds.includes(artist.id))
-      .sort(compareArtistsChronologically);
+      .sort(makeChronologicalComparator(lineup));
     const trackLimit = maxTracksPerArtist <= 0
       ? Number.MAX_SAFE_INTEGER
       : Math.max(1, Math.min(maxTracksPerArtist, 50));
