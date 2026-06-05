@@ -28,6 +28,9 @@ function candidateSortScore(candidate: SpotifyTrackCandidate): number {
   if (candidate.liveCount) score += 100 + candidate.liveCount * 5;
   if (candidate.sources.includes('spotify_top_tracks')) score += 50;
   if (candidate.sources.includes('recent_release')) score += 15;
+  // When targeting an existing playlist, fresh tracks must win the cap —
+  // already-present ones get filtered out downstream anyway
+  if (candidate.alreadyInPlaylist) score -= 500;
   return score;
 }
 

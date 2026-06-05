@@ -499,6 +499,20 @@ export default function PlaylistWizard({
                 );
               })}
 
+              {(preview.fullyCoveredArtists?.length ?? 0) > 0 && (
+                <div className="rounded-xl border border-spotify/40 bg-spotify/5 p-3">
+                  <p className="text-xs font-bold text-spotify mb-1.5">
+                    ✓ Al ruim vertegenwoordigd in deze playlist ({preview.fullyCoveredArtists!.length})
+                  </p>
+                  <p className="text-[11px] text-fog">
+                    {preview.fullyCoveredArtists!.map((a) => a.name).join(' · ')}
+                  </p>
+                  <p className="text-[10px] text-fog-dim mt-1.5">
+                    Alle goede nummers van deze artiesten staan er al in — er wordt niets dubbel toegevoegd.
+                  </p>
+                </div>
+              )}
+
               {preview.unmatchedArtists.length > 0 && (
                 <div className="rounded-xl border border-line bg-card p-3">
                   <p className="text-xs font-bold text-fog mb-1.5">

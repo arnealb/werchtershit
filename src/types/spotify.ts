@@ -64,6 +64,8 @@ export interface MatchedArtist {
 export interface PlaylistPreviewData {
   matchedArtists: MatchedArtist[];
   unmatchedArtists: { id: string; name: string }[];
+  /** Artists whose candidates are all already in the target playlist */
+  fullyCoveredArtists?: { id: string; name: string }[];
   totalTracks: number;
   selectedDays: string[];
   mode?: 'quick' | 'smart';

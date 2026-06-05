@@ -140,12 +140,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const artistCandidates = candidateResults
+    const rawArtistCandidates = candidateResults
       .filter((result): result is PromiseFulfilledResult<{ artist: Artist; candidates: SpotifyTrackCandidate[] }> =>
         result.status === 'fulfilled',
       )
       .map((result) => result.value)
       .filter(({ candidates }) => candidates.length > 0);
+
+    // Targeting an existing playlist: tracks already in it are removed from
+    // the pool entirely — the AI can only pick NEW tracks. Artists whose
+    // entire pool is already covered are reported separately.
+    const targetingExisting = Boolean(targetPlaylistId);
+    const fullyCoveredArtists = targetingExisting
+      ? rawArtistCandidates
+          .filter(({ candidates }) => candidates.every((candidate) => candidate.alreadyInPlaylist))
+          .map(({ artist }) => ({ id: artist.id, name: artist.name }))
+      : [];
+    const fullyCoveredIds = new Set(fullyCoveredArtists.map((artist) => artist.id));
+
+    const artistCandidates = (
+      targetingExisting
+        ? rawArtistCandidates.map(({ artist, candidates }) => ({
+            artist,
+            candidates: candidates.filter((candidate) => !candidate.alreadyInPlaylist),
+          }))
+        : rawArtistCandidates
+    ).filter(({ candidates }) => candidates.length > 0);
 
     console.info('[/api/spotify/smart-prep] Built candidate lists', {
       artistsWithCandidates: artistCandidates.length,
@@ -238,7 +258,7 @@ export async function POST(request: NextRequest) {
     });
 
     const unmatchedArtists = matchedArtists
-      .filter((artist) => !artist.matched)
+      .filter((artist) => !artist.matched && !fullyCoveredIds.has(artist.festivalArtistId))
       .map((artist) => ({ id: artist.festivalArtistId, name: artist.festivalArtistName }));
 
     const totalTracks = new Set(matchedArtists.flatMap((artist) => artist.tracks.map((track) => track.uri))).size;
@@ -253,6 +273,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       matchedArtists,
       unmatchedArtists,
+      fullyCoveredArtists,
       totalTracks,
       selectedDays,
       mode: 'smart',
