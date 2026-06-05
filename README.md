@@ -86,6 +86,7 @@ This uploads `data/lineup.json` to the `lineup_cache` table so production never 
    - `SPOTIFY_REDIRECT_URI` = `https://<your-app>.vercel.app/api/spotify/callback`
    - `OPENAI_API_KEY`
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `SETLISTFM_API_KEY` (optional — real live-setlist data for Smart Prep)
 4. Deploy
 
 ### 4. Update Spotify

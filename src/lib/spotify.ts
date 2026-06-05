@@ -2,10 +2,8 @@ import type {
   SpotifyPlaylistSummary,
   SpotifyTokens,
   SpotifyTrack,
-  SpotifyTrackCandidate,
   SpotifyUser,
 } from '@/types/spotify';
-import type { Artist } from '@/types/lineup';
 import { cookies } from 'next/headers';
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID!;
@@ -140,7 +138,7 @@ export async function getValidTokens(): Promise<SpotifyTokens | null> {
 
 // ─── API calls ───────────────────────────────────────────────────────────────
 
-async function spotifyFetch(path: string, token: string, opts?: RequestInit): Promise<Response> {
+export async function spotifyFetch(path: string, token: string, opts?: RequestInit): Promise<Response> {
   const method = opts?.method?.toUpperCase() ?? 'GET';
   const hasBody = method === 'POST' || method === 'PUT' || method === 'PATCH';
   return fetch(`https://api.spotify.com/v1${path}`, {
@@ -164,7 +162,7 @@ function getDebugHeaders(res: Response): Record<string, string | null> {
   };
 }
 
-async function readSpotifyError(
+export async function readSpotifyError(
   action: string,
   method: string,
   path: string,
@@ -232,7 +230,7 @@ export async function searchTracksByArtist(
   }));
 }
 
-function normalizeName(value: string): string {
+export function normalizeName(value: string): string {
   return value
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -241,7 +239,7 @@ function normalizeName(value: string): string {
     .trim();
 }
 
-function spotifyTrackFromApi(track: {
+export function spotifyTrackFromApi(track: {
   id: string;
   uri: string;
   name: string;
@@ -265,7 +263,7 @@ function spotifyTrackFromApi(track: {
   };
 }
 
-async function searchSpotifyArtist(artistName: string, token: string): Promise<{ id: string; name: string } | null> {
+export async function searchSpotifyArtist(artistName: string, token: string): Promise<{ id: string; name: string } | null> {
   const params = new URLSearchParams({
     q: artistName,
     type: 'artist',
@@ -289,7 +287,7 @@ async function searchSpotifyArtist(artistName: string, token: string): Promise<{
   );
 }
 
-async function getArtistTopTracks(artistId: string, token: string): Promise<SpotifyTrack[]> {
+export async function getArtistTopTracks(artistId: string, token: string): Promise<SpotifyTrack[]> {
   const path = `/artists/${artistId}/top-tracks?market=BE`;
   const res = await spotifyFetch(path, token);
   if (!res.ok) {
@@ -298,124 +296,6 @@ async function getArtistTopTracks(artistId: string, token: string): Promise<Spot
 
   const data = await res.json();
   return (data.tracks ?? []).map(spotifyTrackFromApi);
-}
-
-async function getRecentArtistAlbumTracks(
-  artistId: string,
-  token: string,
-  maxAlbums = 4,
-): Promise<SpotifyTrack[]> {
-  const albumsPath = `/artists/${artistId}/albums?include_groups=album,single&market=BE&limit=10`;
-  const albumsRes = await spotifyFetch(albumsPath, token);
-  if (!albumsRes.ok) {
-    throw await readSpotifyError('Failed to fetch artist albums', 'GET', albumsPath, albumsRes);
-  }
-
-  const albumData = await albumsRes.json();
-  const albums = (albumData.items ?? [])
-    .filter((album: { id?: string }) => album.id)
-    .sort((a: { release_date?: string }, b: { release_date?: string }) =>
-      String(b.release_date ?? '').localeCompare(String(a.release_date ?? '')),
-    )
-    .slice(0, maxAlbums);
-
-  const albumTracks = await Promise.allSettled(
-    albums.map(async (album: { id: string; name?: string; release_date?: string }) => {
-      const tracksPath = `/albums/${album.id}/tracks?market=BE&limit=20`;
-      const tracksRes = await spotifyFetch(tracksPath, token);
-      if (!tracksRes.ok) {
-        throw await readSpotifyError('Failed to fetch album tracks', 'GET', tracksPath, tracksRes);
-      }
-      const tracksData = await tracksRes.json();
-      return (tracksData.items ?? []).map((track: {
-        id: string;
-        uri: string;
-        name: string;
-        artists?: { id: string; name: string }[];
-        duration_ms?: number;
-        preview_url?: string | null;
-      }) => ({
-        ...spotifyTrackFromApi({
-          ...track,
-          album: { name: album.name, release_date: album.release_date },
-        }),
-      }));
-    }),
-  );
-
-  return albumTracks.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
-}
-
-export async function getArtistPrepCandidates(
-  festivalArtist: Artist,
-  token: string,
-  existingUris = new Set<string>(),
-): Promise<SpotifyTrackCandidate[]> {
-  const spotifyArtist = await searchSpotifyArtist(festivalArtist.name, token);
-  if (!spotifyArtist) return [];
-
-  const sources = await Promise.allSettled([
-    getArtistTopTracks(spotifyArtist.id, token),
-    searchTracksByArtist(spotifyArtist.name, token, 10),
-    getRecentArtistAlbumTracks(spotifyArtist.id, token),
-  ]);
-  const sourceNames = ['spotify_top_tracks', 'spotify_search', 'recent_release'] as const;
-  const normalizedSpotifyArtistName = normalizeName(spotifyArtist.name);
-
-  const byUri = new Map<string, SpotifyTrackCandidate>();
-  const addTracks = (tracks: SpotifyTrack[], source: string) => {
-    for (const track of tracks) {
-      if (!track.uri) continue;
-      if (!track.artists.some((artist) => normalizeName(artist.name) === normalizedSpotifyArtistName)) {
-        continue;
-      }
-
-      const existing = byUri.get(track.uri);
-      if (existing) {
-        if (!existing.sources.includes(source)) existing.sources.push(source);
-        existing.popularity ??= track.popularity;
-        existing.albumName ??= track.albumName;
-        existing.releaseDate ??= track.releaseDate;
-        continue;
-      }
-
-      byUri.set(track.uri, {
-        ...track,
-        festivalArtistId: festivalArtist.id,
-        festivalArtistName: festivalArtist.name,
-        spotifyArtistName: spotifyArtist.name,
-        sources: [source],
-        alreadyInPlaylist: existingUris.has(track.uri),
-      });
-    }
-  };
-
-  sources.forEach((result, index) => {
-    const source = sourceNames[index];
-    if (result.status === 'fulfilled') {
-      addTracks(result.value, source);
-      return;
-    }
-
-    console.warn('[spotify] Failed to build smart prep source', {
-      festivalArtist: festivalArtist.name,
-      spotifyArtist: spotifyArtist.name,
-      source,
-      error: String(result.reason),
-    });
-  });
-
-  console.info('[spotify] Built prep candidates for artist', {
-    festivalArtist: festivalArtist.name,
-    spotifyArtist: spotifyArtist.name,
-    candidateCount: byUri.size,
-    sourceCounts: [...byUri.values()].reduce<Record<string, number>>((acc, track) => {
-      for (const source of track.sources) acc[source] = (acc[source] ?? 0) + 1;
-      return acc;
-    }, {}),
-  });
-
-  return [...byUri.values()];
 }
 
 export async function getEditablePlaylists(token: string): Promise<SpotifyPlaylistSummary[]> {

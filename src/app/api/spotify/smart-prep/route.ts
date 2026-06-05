@@ -2,16 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getLineupData } from '@/lib/lineup';
 import { rankSmartPrepTracks } from '@/lib/openai';
 import {
-  getArtistPrepCandidates,
   getPlaylistTrackUris,
   getValidTokens,
   SpotifyApiError,
 } from '@/lib/spotify';
-import type { Artist } from '@/types/lineup';
+import { getArtistPrepCandidates } from '@/lib/prep-candidates';
+import { compareArtistsChronologically, type Artist } from '@/types/lineup';
 import type { MatchedArtist, SpotifyTrackCandidate } from '@/types/spotify';
+
+// Smart prep fans out many Spotify + setlist.fm calls; allow up to a minute on Vercel
+export const maxDuration = 60;
+
+const REFERENCE_SET_MINUTES = 60;
+const MIN_TRACKS_PER_ARTIST = 2;
+const MAX_TRACKS_PER_ARTIST = 12;
+
+/**
+ * Set-weighted budget: a 90-minute headliner deserves more prep tracks
+ * than a 40-minute early-afternoon slot. `base` is the slider value (≈ tracks
+ * for a one-hour set).
+ */
+function trackBudgetFor(artist: Artist, base: number): number {
+  const weight = (artist.durationMinutes || REFERENCE_SET_MINUTES) / REFERENCE_SET_MINUTES;
+  return Math.max(MIN_TRACKS_PER_ARTIST, Math.min(MAX_TRACKS_PER_ARTIST, Math.round(base * weight)));
+}
 
 function scoreCandidate(track: SpotifyTrackCandidate): number {
   let score = track.popularity ?? 0;
+  if (track.sources.includes('live_setlist')) score += 150 + (track.liveCount ?? 0) * 5;
   if (track.sources.includes('spotify_top_tracks')) score += 100;
   if (track.sources.includes('recent_release')) score += 25;
   if (track.sources.includes('spotify_search')) score += 10;
@@ -62,10 +80,22 @@ export async function POST(request: NextRequest) {
     const allArtists: Artist[] = lineup.flatMap((day) =>
       day.stages.flatMap((stage) => stage.artists),
     );
-    const selectedArtists = allArtists.filter((artist) => artistIds.includes(artist.id));
+    const selectedArtists = allArtists
+      .filter((artist) => artistIds.includes(artist.id))
+      .sort(compareArtistsChronologically);
     const trackLimit = maxTracksPerArtist <= 0
       ? Number.MAX_SAFE_INTEGER
       : Math.max(1, Math.min(maxTracksPerArtist, 50));
+
+    // Per-artist budget, weighted by set length (unlimited in "all" mode)
+    const budgetByArtistId = new Map(
+      selectedArtists.map((artist) => [
+        artist.id,
+        trackLimit === Number.MAX_SAFE_INTEGER
+          ? Number.MAX_SAFE_INTEGER
+          : trackBudgetFor(artist, trackLimit),
+      ]),
+    );
 
     if (selectedArtists.length === 0) {
       return NextResponse.json({ error: 'No matching artists found in lineup' }, { status: 400 });
@@ -133,15 +163,12 @@ export async function POST(request: NextRequest) {
 
     let aiResult: Awaited<ReturnType<typeof rankSmartPrepTracks>>;
     try {
-      const aiTrackLimit = trackLimit === Number.MAX_SAFE_INTEGER
-        ? Math.max(...artistCandidates.map(({ candidates }) => candidates.length), 1)
-        : trackLimit;
-
       aiResult = await rankSmartPrepTracks({
-        maxTracksPerArtist: aiTrackLimit,
         artists: artistCandidates.map(({ artist, candidates }) => ({
           id: artist.id,
           name: artist.name,
+          setDurationMinutes: artist.durationMinutes,
+          maxTracks: Math.min(budgetByArtistId.get(artist.id) ?? trackLimit, candidates.length),
           candidates,
         })),
       });
@@ -165,6 +192,7 @@ export async function POST(request: NextRequest) {
     );
 
     const matchedArtists: MatchedArtist[] = selectedArtists.map((artist) => {
+      const budget = budgetByArtistId.get(artist.id) ?? trackLimit;
       const selection = aiResult.selections.find((item) => item.festivalArtistId === artist.id);
       const tracks: SpotifyTrackCandidate[] = [];
       for (const track of selection?.tracks ?? []) {
@@ -177,8 +205,8 @@ export async function POST(request: NextRequest) {
       }
 
       const finalTracks = tracks.length > 0
-        ? tracks.slice(0, trackLimit)
-        : fallbackPrepTracks(candidatesByArtistId.get(artist.id) ?? [], trackLimit);
+        ? tracks.slice(0, budget)
+        : fallbackPrepTracks(candidatesByArtistId.get(artist.id) ?? [], budget);
 
       if (tracks.length === 0 && finalTracks.length > 0) {
         console.info('[/api/spotify/smart-prep] Used fallback ranking', {

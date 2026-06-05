@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens, searchTracksByArtist } from '@/lib/spotify';
 import { getLineupData } from '@/lib/lineup';
 import type { MatchedArtist } from '@/types/spotify';
-import type { Artist } from '@/types/lineup';
+import { compareArtistsChronologically, type Artist } from '@/types/lineup';
 
 export async function POST(request: NextRequest) {
   const tokens = await getValidTokens();
@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     const allArtists: Artist[] = lineup.flatMap((day) =>
       day.stages.flatMap((stage) => stage.artists),
     );
-    const selectedArtists = allArtists.filter((a) => artistIds.includes(a.id));
+    const selectedArtists = allArtists
+      .filter((a) => artistIds.includes(a.id))
+      .sort(compareArtistsChronologically);
 
     if (selectedArtists.length === 0) {
       return NextResponse.json({ error: 'No matching artists found in lineup' }, { status: 400 });

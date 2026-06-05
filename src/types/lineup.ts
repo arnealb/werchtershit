@@ -61,3 +61,18 @@ export interface DaySchedule {
 }
 
 export type LineupData = DaySchedule[];
+
+export const DAY_ORDER: Record<Day, number> = {
+  thursday: 0,
+  friday: 1,
+  saturday: 2,
+  sunday: 3,
+};
+
+/** Timetable order: day first, then set start time — playlists follow the festival. */
+export function compareArtistsChronologically(a: Artist, b: Artist): number {
+  return (
+    (DAY_ORDER[a.day] ?? 0) - (DAY_ORDER[b.day] ?? 0) ||
+    a.startTime.minutesFromMidnight - b.startTime.minutesFromMidnight
+  );
+}

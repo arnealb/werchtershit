@@ -9,9 +9,8 @@ import {
   SPOTIFY_SCOPES,
 } from '@/lib/spotify';
 import { getLineupData } from '@/lib/lineup';
-import type { Artist } from '@/types/lineup';
+import { compareArtistsChronologically, DAY_LABELS, type Artist } from '@/types/lineup';
 import type { MatchedArtist } from '@/types/spotify';
-import { DAY_LABELS } from '@/types/lineup';
 
 export async function POST(request: NextRequest) {
   const tokens = await getValidTokens();
@@ -36,7 +35,9 @@ export async function POST(request: NextRequest) {
     const allArtists: Artist[] = lineup.flatMap((day) =>
       day.stages.flatMap((stage) => stage.artists),
     );
-    const selectedArtists = allArtists.filter((a) => artistIds.includes(a.id));
+    const selectedArtists = allArtists
+      .filter((a) => artistIds.includes(a.id))
+      .sort(compareArtistsChronologically);
 
     let trackUris = [...new Set(explicitTrackUris ?? [])];
     if (trackUris.length === 0) {

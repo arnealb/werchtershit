@@ -48,6 +48,8 @@ export interface SpotifyTrackCandidate extends SpotifyTrack {
   spotifyArtistName: string;
   sources: string[];
   alreadyInPlaylist: boolean;
+  /** How often this song appeared in the artist's recent setlists (setlist.fm) */
+  liveCount?: number;
 }
 
 export interface MatchedArtist {

@@ -4,9 +4,12 @@ interface SmartPrepInput {
   artists: {
     id: string;
     name: string;
+    /** Festival set length — longer sets warrant more prep tracks */
+    setDurationMinutes: number;
+    /** Per-artist track budget (set-weighted) */
+    maxTracks: number;
     candidates: SpotifyTrackCandidate[];
   }[];
-  maxTracksPerArtist: number;
 }
 
 interface SmartPrepSelection {
@@ -71,10 +74,11 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
     input.artists.flatMap((artist) => artist.candidates.map((track) => track.uri)),
   );
   const compactInput = {
-    maxTracksPerArtist: input.maxTracksPerArtist,
     artists: input.artists.map((artist) => ({
       id: artist.id,
       name: artist.name,
+      setDurationMinutes: artist.setDurationMinutes,
+      maxTracks: artist.maxTracks,
       candidates: artist.candidates.map((track) => ({
         uri: track.uri,
         name: track.name,
@@ -84,6 +88,7 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
         releaseDate: track.releaseDate ?? null,
         popularity: track.popularity ?? null,
         sources: track.sources,
+        recentLivePlayCount: track.liveCount ?? null,
         alreadyInPlaylist: track.alreadyInPlaylist,
       })),
     })),
@@ -93,7 +98,7 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
     model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
     artistCount: compactInput.artists.length,
     candidateCount: compactInput.artists.reduce((sum, artist) => sum + artist.candidates.length, 0),
-    maxTracksPerArtist: input.maxTracksPerArtist,
+    budgets: compactInput.artists.map((artist) => `${artist.name}:${artist.maxTracks}`),
   });
 
   const response = await fetch('https://api.openai.com/v1/responses', {
@@ -107,7 +112,10 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
       instructions: [
         'You curate preparation playlists for Rock Werchter festival visitors.',
         'Choose the songs that a casual listener should know before seeing each selected artist live.',
-        'Prefer live staples, recognizable hits, popular songs, and recent singles/album tracks.',
+        'Strongest signal: candidates with a recentLivePlayCount and the "live_setlist" source were ACTUALLY played at the artist\'s recent concerts — prioritize these.',
+        'Then prefer live staples, recognizable hits, popular songs, and recent singles/album tracks.',
+        'Aim for a representative mix across the artist\'s career: include the classics, not only recent work.',
+        'Select up to maxTracks per artist (it is set-weighted: headliners get more).',
         'Do not invent songs. Only select track URIs from the provided candidate lists.',
         'Avoid tracks marked alreadyInPlaylist unless every good candidate is already covered.',
         'Return concise reasons in plain English.',
@@ -168,12 +176,16 @@ export async function rankSmartPrepTracks(input: SmartPrepInput): Promise<SmartP
     selectedTrackCount: parsed.selections.reduce((sum, selection) => sum + selection.tracks.length, 0),
   });
 
+  const maxTracksByArtistId = new Map(
+    input.artists.map((artist) => [artist.id, artist.maxTracks]),
+  );
+
   return {
     selections: parsed.selections.map((selection) => ({
       festivalArtistId: selection.festivalArtistId,
       tracks: selection.tracks
         .filter((track) => candidateUris.has(track.uri))
-        .slice(0, input.maxTracksPerArtist)
+        .slice(0, maxTracksByArtistId.get(selection.festivalArtistId) ?? Number.MAX_SAFE_INTEGER)
         .map((track) => ({
           uri: track.uri,
           reason: track.reason,
