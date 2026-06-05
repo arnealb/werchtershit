@@ -30,7 +30,7 @@ export default async function PlaylistsPage() {
         <p className="text-xs text-fog mt-0.5">Bekijk en beheer je Spotify-playlists</p>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-4">
+      <div className="mx-auto max-w-5xl px-4 py-5">
         {!tokens ? (
           <div className="animate-rise mt-16 text-center px-6">
             <p className="text-4xl mb-4">🎧</p>
@@ -64,35 +64,29 @@ export default async function PlaylistsPage() {
             </Link>
           </div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {playlists.map((playlist, index) => (
-              <li key={playlist.id} className="animate-rise" style={{ animationDelay: `${Math.min(index * 40, 400)}ms` }}>
-                <Link
-                  href={`/playlists/${playlist.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-line bg-card hover:bg-card-hi p-3.5 transition-colors"
-                >
+              <li key={playlist.id} className="animate-rise" style={{ animationDelay: `${Math.min(index * 30, 400)}ms` }}>
+                <Link href={`/playlists/${playlist.id}`} className="group block">
                   {playlist.imageUrl ? (
                     <Image
                       src={playlist.imageUrl}
                       alt=""
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      width={300}
+                      height={300}
+                      className="aspect-square w-full rounded-xl object-cover shadow-lg transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-[0.98]"
                       unoptimized
                     />
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ember/15 text-lg">
+                    <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-gradient-to-br from-card-hi to-card text-4xl shadow-lg transition-transform duration-200 group-hover:scale-[1.03] group-active:scale-[0.98]">
                       🎵
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-cream truncate">{playlist.name}</p>
-                    <p className="text-xs text-fog mt-0.5">
-                      {playlist.trackCount} nummers
-                      {playlist.collaborative && ' · samen met vrienden'}
-                    </p>
-                  </div>
-                  <span className="text-fog-dim text-lg">›</span>
+                  <p className="mt-2 text-sm font-bold text-cream truncate">{playlist.name}</p>
+                  <p className="text-xs text-fog mt-0.5 truncate">
+                    {playlist.trackCount} nummers
+                    {playlist.collaborative && ' · met vrienden'}
+                  </p>
                 </Link>
               </li>
             ))}

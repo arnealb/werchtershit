@@ -15,7 +15,7 @@ export const maxDuration = 60;
 
 const REFERENCE_SET_MINUTES = 60;
 const MIN_TRACKS_PER_ARTIST = 2;
-const MAX_TRACKS_PER_ARTIST = 12;
+const MAX_TRACKS_PER_ARTIST = 30;
 
 /**
  * Set-weighted budget: a 90-minute headliner deserves more prep tracks

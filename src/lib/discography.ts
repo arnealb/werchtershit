@@ -11,7 +11,7 @@ const MAX_STUDIO_ALBUMS = 10;
 const MAX_RECENT_SINGLES = 8;
 const RECENT_SINGLE_YEARS = 3;
 const MAX_TRACKS_TO_ENRICH = 250;
-const MAX_CANDIDATES = 40;
+const MAX_CANDIDATES = 60;
 
 interface AlbumSummary {
   id: string;

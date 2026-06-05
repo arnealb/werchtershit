@@ -11,7 +11,7 @@ import { getArtistTopTracks, normalizeName, searchSpotifyArtist, searchTracksByA
 import { getDiscographyTracks } from './discography';
 import { getRecentLiveSongs, normalizeSongName } from './setlistfm';
 
-const MAX_CANDIDATES = 30;
+const MAX_CANDIDATES = 50;
 const RECENT_RELEASE_MONTHS = 18;
 
 function isRecentRelease(releaseDate?: string): boolean {

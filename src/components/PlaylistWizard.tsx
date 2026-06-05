@@ -174,7 +174,7 @@ export default function PlaylistWizard({
   const stepperButton = (delta: number, label: string) => (
     <button
       type="button"
-      onClick={() => setTracksPerArtist((n) => Math.max(1, Math.min(10, n + delta)))}
+      onClick={() => setTracksPerArtist((n) => Math.max(1, Math.min(25, n + delta)))}
       className="h-12 w-12 rounded-full bg-card-hi text-cream text-2xl font-bold leading-none hover:bg-line active:scale-95 transition-all"
       aria-label={label}
     >
@@ -258,14 +258,33 @@ export default function PlaylistWizard({
                 <h3 className="text-xs font-bold text-fog uppercase tracking-widest mb-2.5">
                   Hoeveel nummers per artiest?
                 </h3>
-                <div className="rounded-xl border border-line bg-card p-4 flex items-center justify-center gap-6">
-                  {stepperButton(-1, 'Minder nummers')}
-                  <div className="text-center w-20">
-                    <span className="font-display text-5xl text-cream leading-none">
-                      {tracksPerArtist}
-                    </span>
+                <div className="rounded-xl border border-line bg-card p-4">
+                  <div className="flex items-center justify-center gap-6">
+                    {stepperButton(-1, 'Minder nummers')}
+                    <div className="text-center w-20">
+                      <span className="font-display text-5xl text-cream leading-none">
+                        {tracksPerArtist}
+                      </span>
+                    </div>
+                    {stepperButton(1, 'Meer nummers')}
                   </div>
-                  {stepperButton(1, 'Meer nummers')}
+                  <div className="mt-3 flex justify-center gap-1.5">
+                    {[3, 5, 10, 15, 25].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setTracksPerArtist(preset)}
+                        className={[
+                          'rounded-full px-3 py-1 text-xs font-bold transition-colors',
+                          tracksPerArtist === preset
+                            ? 'bg-ember text-white'
+                            : 'bg-card-hi text-fog hover:text-cream',
+                        ].join(' ')}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {mode === 'smart' && (
                   <p className="text-[11px] text-fog-dim mt-2 text-center">
