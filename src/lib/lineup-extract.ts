@@ -85,6 +85,7 @@ const EXTRACTION_INSTRUCTIONS = [
   'You extract festival/concert timetables into structured data.',
   'Extract EVERY artist with their stage and set times. Use 24h HH:MM times.',
   'The input may contain multiple pages, each starting with a line "=== PAGINA: <url> ===". The page URL often states the day (e.g. a path ending in /vrijdag means every artist in that section plays on Friday). All artists in a page section belong to that page\'s day — day names from navigation menus or tabs do NOT change this.',
+  'Sections marked [INGEBEDDE JSON-DATA] contain raw structured data from the page (schema.org events, framework state). Mine them for artists, stages, days and set times — they are often more complete than the visible text.',
   'CRITICAL: assign each artist to the EXACT day stated in the source. Sources often show a day label directly next to or below each artist name (e.g. "VR 21 AUG.", "FRI 21 AUG", "Saturday"), or group artists under day sections/tabs. Follow those labels precisely — NEVER guess or distribute artists over days yourself. If a day cannot be determined for an artist, put them on the first day rather than inventing a spread.',
   'Stage names often appear as a header line directly above a group of artists (e.g. "The Beach (Vrijdag)" or "Main Stage"). Assign the artists below such a header to that stage until the next header.',
   'Dutch day abbreviations: DO=Thursday, VR=Friday, ZA=Saturday, ZO=Sunday, WO=Wednesday, MA=Monday, DI=Tuesday.',
@@ -213,10 +214,54 @@ const DAY_PATH_SEGMENT =
 
 const MAX_DAY_PAGES = 7;
 
+// Embedded structured data (schema.org / framework state) that may hold the lineup
+const LINEUP_JSON_HINT = /(MusicEvent|Festival|performer|line-?up|artist|stage|timetable)/i;
+const EMBEDDED_JSON_CHUNK_CAP = 20_000;
+const EMBEDDED_JSON_TOTAL_CAP = 40_000;
+
+// Below this many readable chars we assume a JS-rendered page and retry via a renderer
+const MIN_READABLE_CHARS = 800;
+
 interface FetchedPage {
   url: string;
   text: string;
   dayLinks: string[];
+}
+
+/** Resolve an href to a normalized same-origin per-day page URL, or null. */
+function dayLinkFrom(href: string, baseUrl: string): string | null {
+  try {
+    const resolved = new URL(href, baseUrl);
+    if (resolved.origin !== new URL(baseUrl).origin) return null;
+    const lastSegment = resolved.pathname.split('/').filter(Boolean).pop() ?? '';
+    if (!DAY_PATH_SEGMENT.test(lastSegment)) return null;
+    return `${resolved.origin}${resolved.pathname.replace(/\/+$/, '')}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Render-fallback for JS-only sites: Jina Reader (r.jina.ai) loads the page in
+ * a real browser and returns the rendered content as text. Free tier, no key
+ * required; JINA_API_KEY raises the rate limit when set.
+ */
+async function fetchRenderedText(url: string): Promise<string | null> {
+  try {
+    const headers: Record<string, string> = { Accept: 'text/plain' };
+    if (process.env.JINA_API_KEY) {
+      headers.Authorization = `Bearer ${process.env.JINA_API_KEY}`;
+    }
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers,
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return null;
+    const text = (await res.text()).trim();
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchPage(url: string): Promise<FetchedPage> {
@@ -232,6 +277,18 @@ async function fetchPage(url: string): Promise<FetchedPage> {
 
   const html = await res.text();
   const $ = cheerio.load(html);
+
+  // Structured data often holds the full lineup while the visible HTML is
+  // sparse (schema.org MusicEvents, Next.js/Nuxt state) — capture it BEFORE
+  // scripts are stripped
+  const embeddedJsonChunks: string[] = [];
+  $('script[type="application/ld+json"], script#__NEXT_DATA__').each((_, el) => {
+    const raw = $(el).text().trim();
+    if (!raw || !LINEUP_JSON_HINT.test(raw)) return;
+    if (embeddedJsonChunks.join('').length >= EMBEDDED_JSON_TOTAL_CAP) return;
+    embeddedJsonChunks.push(raw.slice(0, EMBEDDED_JSON_CHUNK_CAP));
+  });
+
   $('script, style, noscript, svg, iframe').remove();
   // Image-heavy lineup pages often carry stage/artist names only in alt text
   // (e.g. <img alt="The Beach (Vrijdag)">) — surface those as text lines
@@ -253,18 +310,8 @@ async function fetchPage(url: string): Promise<FetchedPage> {
   // can crawl the whole event instead of a single day
   const dayLinks: string[] = [];
   $('a[href]').each((_, el) => {
-    const href = $(el).attr('href');
-    if (!href) return;
-    try {
-      const resolved = new URL(href, url);
-      if (resolved.origin !== new URL(url).origin) return;
-      const lastSegment = resolved.pathname.split('/').filter(Boolean).pop() ?? '';
-      if (!DAY_PATH_SEGMENT.test(lastSegment)) return;
-      const normalized = `${resolved.origin}${resolved.pathname.replace(/\/+$/, '')}`;
-      if (!dayLinks.includes(normalized)) dayLinks.push(normalized);
-    } catch {
-      // unparseable href — skip
-    }
+    const link = dayLinkFrom($(el).attr('href') ?? '', url);
+    if (link && !dayLinks.includes(link)) dayLinks.push(link);
   });
 
   const title = $('title').text().trim();
@@ -274,7 +321,27 @@ async function fetchPage(url: string): Promise<FetchedPage> {
     .replace(/ ?\n ?/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-  return { url, text: `${title}\n\n${text}`, dayLinks };
+
+  let pageText = `${title}\n\n${text}`;
+  if (embeddedJsonChunks.length > 0) {
+    pageText = `${pageText}\n\n[INGEBEDDE JSON-DATA]\n${embeddedJsonChunks.join('\n')}`;
+  }
+
+  // Fully JS-rendered page (almost no readable text and no embedded data):
+  // retry through a rendering proxy as a last resort
+  if (pageText.length < MIN_READABLE_CHARS) {
+    const rendered = await fetchRenderedText(url);
+    if (rendered && rendered.length > pageText.length) {
+      pageText = `${title}\n\n${rendered}`;
+      // The rendered text may expose day-page links the raw HTML lacked
+      for (const raw of rendered.match(/https?:\/\/[^\s)"'<>\]]+/g) ?? []) {
+        const link = dayLinkFrom(raw, url);
+        if (link && !dayLinks.includes(link)) dayLinks.push(link);
+      }
+    }
+  }
+
+  return { url, text: pageText, dayLinks };
 }
 
 /**
