@@ -50,14 +50,30 @@ function parseDataUrl(dataUrl: string): { mimeType: string; data: string } | nul
   return { mimeType: match[1], data: match[2] };
 }
 
+// Free-tier rate-limit responses ask for a wait via RetryInfo, e.g. "42s"
+function retryDelayFromError(errorBody: string): number | null {
+  const match = errorBody.match(/"retryDelay"\s*:\s*"(\d+)s"/);
+  return match ? Number(match[1]) * 1000 : null;
+}
+
+const MAX_RETRY_DELAY_MS = 45_000;
+
 async function geminiRequest(model: string, body: Record<string, unknown>): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
-  // Free tier hiccups (429/503) are common — retry with backoff
-  const delays = [0, 2_000, 5_000];
+  // Free tier hiccups (429/503) are common — retry with backoff, honoring
+  // the API's requested wait when it fits within the serverless time budget
+  const fallbackDelays = [0, 2_000, 5_000];
   let lastError = '';
-  for (const delay of delays) {
+  for (let attempt = 0; attempt < fallbackDelays.length; attempt++) {
+    const requested = retryDelayFromError(lastError);
+    const delay =
+      attempt === 0
+        ? 0
+        : requested !== null
+          ? Math.min(requested + 1_000, MAX_RETRY_DELAY_MS)
+          : fallbackDelays[attempt];
     if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
 
     const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`, {

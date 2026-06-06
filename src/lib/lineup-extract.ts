@@ -241,6 +241,12 @@ function dayLinkFrom(href: string, baseUrl: string): string | null {
   }
 }
 
+function jinaAuthHeaders(): Record<string, string> {
+  return process.env.JINA_API_KEY
+    ? { Authorization: `Bearer ${process.env.JINA_API_KEY}` }
+    : {};
+}
+
 /**
  * Render-fallback for JS-only sites: Jina Reader (r.jina.ai) loads the page in
  * a real browser and returns the rendered content as text. Free tier, no key
@@ -248,17 +254,50 @@ function dayLinkFrom(href: string, baseUrl: string): string | null {
  */
 async function fetchRenderedText(url: string): Promise<string | null> {
   try {
-    const headers: Record<string, string> = { Accept: 'text/plain' };
-    if (process.env.JINA_API_KEY) {
-      headers.Authorization = `Bearer ${process.env.JINA_API_KEY}`;
-    }
     const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers,
+      headers: { Accept: 'text/plain', ...jinaAuthHeaders() },
       signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) return null;
     const text = (await res.text()).trim();
     return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+const PAGESHOT_MAX_BYTES = 14_000_000; // keep the Gemini inline request under its 20MB cap
+
+/**
+ * Full-page screenshot of the RENDERED page (Jina Reader pageshot), as a data
+ * URL for vision extraction. Needed when day/stage info only exists visually
+ * (e.g. dates baked into artist-card images).
+ */
+export async function fetchPageScreenshot(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers: { 'X-Return-Format': 'pageshot', ...jinaAuthHeaders() },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get('content-type') ?? '';
+    if (contentType.startsWith('image/')) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (buffer.length === 0 || buffer.length > PAGESHOT_MAX_BYTES) return null;
+      return `data:${contentType};base64,${buffer.toString('base64')}`;
+    }
+
+    // Some responses carry the screenshot URL as plain text — follow it
+    const body = (await res.text()).trim();
+    if (!/^https?:\/\//.test(body)) return null;
+    const imageRes = await fetch(body, { signal: AbortSignal.timeout(30_000) });
+    if (!imageRes.ok) return null;
+    const buffer = Buffer.from(await imageRes.arrayBuffer());
+    if (buffer.length === 0 || buffer.length > PAGESHOT_MAX_BYTES) return null;
+    const mime = imageRes.headers.get('content-type') ?? 'image/png';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
   } catch {
     return null;
   }
@@ -403,8 +442,11 @@ async function repairViaSiteRoot(url: string): Promise<FetchedPage | null> {
  * Page text PRESERVES line structure — day labels next to artist names must
  * stay on adjacent lines, otherwise the model can't associate artists with
  * the right day.
+ *
+ * Returns the resolved main URL too (it can differ from the input after a
+ * site-root repair) so callers can target follow-up fetches correctly.
  */
-export async function fetchEventPagesText(url: string): Promise<string> {
+export async function fetchEventPages(url: string): Promise<{ text: string; mainUrl: string }> {
   let mainPage: FetchedPage;
   try {
     mainPage = await fetchPage(url);
@@ -420,7 +462,7 @@ export async function fetchEventPagesText(url: string): Promise<string> {
     .filter((link) => link !== normalizedMain)
     .slice(0, MAX_DAY_PAGES - 1);
   if (siblingUrls.length === 0) {
-    return mainPage.text;
+    return { text: mainPage.text, mainUrl: mainPage.url };
   }
 
   const siblingPages = await Promise.all(
@@ -434,7 +476,10 @@ export async function fetchEventPagesText(url: string): Promise<string> {
   );
 
   const pages = [mainPage, ...siblingPages.filter((page): page is FetchedPage => page !== null)];
-  return pages.map((page) => `=== PAGINA: ${page.url} ===\n\n${page.text}`).join('\n\n');
+  return {
+    text: pages.map((page) => `=== PAGINA: ${page.url} ===\n\n${page.text}`).join('\n\n'),
+    mainUrl: mainPage.url,
+  };
 }
 
 // ─── Transform extracted data into the app's LineupData ──────────────────────

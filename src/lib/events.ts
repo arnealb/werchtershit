@@ -189,6 +189,50 @@ export async function createEvent(input: {
   return rowToRecord({ ...row, image_url: null });
 }
 
+/**
+ * Merge an imported lineup draft into an existing event (e.g. extra days from
+ * per-day screenshots). Incoming days replace same-key days, new days are
+ * added. Only the creator can merge; the built-in event is protected.
+ */
+export async function mergeEventLineup(
+  slug: string,
+  requesterId: string,
+  incoming: LineupData,
+): Promise<EventRecord> {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase is not configured');
+  }
+  if (slug === BUILTIN_EVENT_SLUG) {
+    throw new Error('Dit event kan niet aangepast worden');
+  }
+  if (!isValidLineup(incoming) || incoming.length === 0) {
+    throw new Error('De aanvulling bevat geen timetable');
+  }
+
+  const event = await getEvent(slug);
+  if (!event) throw new Error('Event niet gevonden');
+  if (event.createdBy !== requesterId) {
+    throw new Error('Alleen wie het event toevoegde kan het aanvullen');
+  }
+
+  const { mergeLineupDays } = await import('./lineup-merge');
+  const merged = mergeLineupDays(event.lineup, incoming);
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('events')
+    .update({
+      lineup: merged,
+      start_date: merged[0]?.date || null,
+      end_date: merged[merged.length - 1]?.date || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('slug', slug);
+  if (error) throw new Error(`Failed to merge lineup: ${error.message}`);
+
+  return { ...event, lineup: merged, dayCount: merged.length };
+}
+
 /** Delete an event. Only the creator can delete; the built-in event is protected. */
 export async function deleteEvent(slug: string, requesterId: string): Promise<void> {
   if (!isSupabaseConfigured()) {

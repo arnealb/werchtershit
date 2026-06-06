@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatDayLabel, type LineupData } from '@/types/lineup';
+
+interface ExistingEvent {
+  slug: string;
+  name: string;
+  dayCount: number;
+}
 
 type Step = 'method' | 'search' | 'url' | 'image' | 'extracting' | 'preview';
 type Method = 'search' | 'url' | 'image';
@@ -39,6 +45,19 @@ export default function EventImportWizard({ isAuthenticated }: Props) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
+
+  const [existingEvents, setExistingEvents] = useState<ExistingEvent[]>([]);
+  const [mergeTarget, setMergeTarget] = useState('');
+  const [isMerging, setIsMerging] = useState(false);
+
+  // Existing events for the "vul een bestaand event aan" option in the preview
+  useEffect(() => {
+    if (step !== 'preview' || existingEvents.length > 0) return;
+    fetch('/api/events')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setExistingEvents(data?.events ?? []))
+      .catch(() => setExistingEvents([]));
+  }, [step, existingEvents.length]);
 
   const startMethod = (m: Method) => {
     setMethod(m);
@@ -108,6 +127,26 @@ export default function EventImportWizard({ isAuthenticated }: Props) {
       console.error('Image import failed:', e);
       setError(e instanceof Error ? e.message : 'Import mislukt');
       setStep('image');
+    }
+  };
+
+  const mergeIntoExisting = async () => {
+    if (!draft || !mergeTarget) return;
+    setIsMerging(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/events/${mergeTarget}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineup: draft.lineup }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Aanvullen mislukt');
+      router.push(`/e/${data.event.slug}`);
+    } catch (e) {
+      console.error('Event merge failed:', e);
+      setError(e instanceof Error ? e.message : 'Aanvullen mislukt');
+      setIsMerging(false);
     }
   };
 
@@ -363,11 +402,45 @@ export default function EventImportWizard({ isAuthenticated }: Props) {
 
           <button
             onClick={save}
-            disabled={isSaving || !draft.name.trim()}
+            disabled={isSaving || isMerging || !draft.name.trim()}
             className="w-full rounded-xl bg-spotify hover:bg-spotify-hi disabled:bg-card disabled:text-fog-dim py-3.5 text-sm font-bold text-white transition-colors"
           >
             {isSaving ? 'Opslaan…' : 'Klopt — voeg dit event toe'}
           </button>
+
+          {existingEvents.length > 0 && (
+            <div className="rounded-xl border border-line bg-soot/60 p-3.5 space-y-2.5">
+              <p className="text-xs font-bold text-fog uppercase tracking-widest">
+                Of vul een bestaand event aan
+              </p>
+              <p className="text-[11px] leading-relaxed text-fog-dim">
+                Handig als je per dag importeert (bv. een screenshot per festivaldag): dagen met
+                dezelfde datum worden vervangen, nieuwe dagen toegevoegd.
+              </p>
+              <div className="flex gap-2">
+                <select
+                  value={mergeTarget}
+                  onChange={(e) => setMergeTarget(e.target.value)}
+                  className="flex-1 rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-cream focus:border-ember focus:outline-none"
+                >
+                  <option value="">Kies een event…</option>
+                  {existingEvents.map((event) => (
+                    <option key={event.slug} value={event.slug}>
+                      {event.name} ({event.dayCount} {event.dayCount === 1 ? 'dag' : 'dagen'})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={mergeIntoExisting}
+                  disabled={!mergeTarget || isMerging || isSaving}
+                  className="rounded-lg border border-ember text-ember hover:bg-ember hover:text-white disabled:border-line disabled:text-fog-dim px-4 text-sm font-bold transition-colors"
+                >
+                  {isMerging ? '…' : 'Vul aan'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <p className="text-[11px] text-fog-dim text-center pb-4">
             Niet helemaal juist? Probeer een andere bron — AI-extractie is niet altijd perfect.
           </p>

@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSpotifyUser, getValidTokens } from '@/lib/spotify';
-import { createEvent } from '@/lib/events';
+import { BUILTIN_EVENT_SLUG, createEvent, listEvents } from '@/lib/events';
 import type { LineupData } from '@/types/lineup';
 
 const VALID_SOURCE_TYPES = ['ai_url', 'ai_screenshot', 'ai_search'] as const;
 type SourceType = (typeof VALID_SOURCE_TYPES)[number];
+
+export async function GET() {
+  const tokens = await getValidTokens();
+  if (!tokens) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  try {
+    const events = await listEvents();
+    return NextResponse.json({
+      events: events
+        .filter((event) => event.slug !== BUILTIN_EVENT_SLUG)
+        .map((event) => ({ slug: event.slug, name: event.name, dayCount: event.dayCount })),
+    });
+  } catch (err) {
+    console.error('[/api/events] List error:', err);
+    return NextResponse.json({ error: 'Events ophalen is mislukt' }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   const tokens = await getValidTokens();

@@ -1,12 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens } from '@/lib/spotify';
 import {
+  extractEventFromImage,
   extractEventFromText,
-  fetchEventPagesText,
+  fetchEventPages,
+  fetchPageScreenshot,
   transformExtractedToLineup,
+  type ExtractedEvent,
 } from '@/lib/lineup-extract';
+import { lacksDayInfo, mergeVisionDays } from '@/lib/lineup-merge';
 
-export const maxDuration = 60;
+// Text extraction + optional vision fallback (pageshot render + Gemini vision)
+// can take a while on big multi-day festivals
+export const maxDuration = 120;
+
+/**
+ * When a big lineup lands on one day without times, the days are probably
+ * only visible visually (dates baked into card images). Render a full-page
+ * screenshot and let the vision model read the days, keeping the exact
+ * artist names from the text extraction.
+ */
+async function refineWithVision(
+  extracted: ExtractedEvent,
+  pageUrl: string,
+  hint: string | undefined,
+): Promise<ExtractedEvent> {
+  const screenshot = await fetchPageScreenshot(pageUrl);
+  if (!screenshot) return extracted;
+  try {
+    const vision = await extractEventFromImage(screenshot, hint);
+    return mergeVisionDays(extracted, vision);
+  } catch (err) {
+    console.error('[/api/events/import-url] Vision fallback failed:', err);
+    return extracted;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const tokens = await getValidTokens();
@@ -30,8 +58,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geef een geldige link (https://…)' }, { status: 400 });
   }
 
+  const safeHint = typeof hint === 'string' ? hint.slice(0, 200) : undefined;
+
   try {
-    const pageText = await fetchEventPagesText(parsedUrl.toString());
+    const { text: pageText, mainUrl } = await fetchEventPages(parsedUrl.toString());
     if (pageText.length < 200) {
       return NextResponse.json(
         { error: 'Deze pagina bevat te weinig leesbare tekst. Probeer een screenshot.' },
@@ -39,10 +69,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const extracted = await extractEventFromText(
-      pageText,
-      typeof hint === 'string' ? hint.slice(0, 200) : undefined,
-    );
+    let extracted = await extractEventFromText(pageText, safeHint);
+    if (lacksDayInfo(extracted)) {
+      extracted = await refineWithVision(extracted, mainUrl, safeHint);
+    }
     const lineup = transformExtractedToLineup(extracted);
 
     if (lineup.length === 0) {
