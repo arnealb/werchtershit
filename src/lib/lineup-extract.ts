@@ -84,7 +84,9 @@ const EXTRACTION_SCHEMA = {
 const EXTRACTION_INSTRUCTIONS = [
   'You extract festival/concert timetables into structured data.',
   'Extract EVERY artist with their stage and set times. Use 24h HH:MM times.',
+  'The input may contain multiple pages, each starting with a line "=== PAGINA: <url> ===". The page URL often states the day (e.g. a path ending in /vrijdag means every artist in that section plays on Friday). All artists in a page section belong to that page\'s day — day names from navigation menus or tabs do NOT change this.',
   'CRITICAL: assign each artist to the EXACT day stated in the source. Sources often show a day label directly next to or below each artist name (e.g. "VR 21 AUG.", "FRI 21 AUG", "Saturday"), or group artists under day sections/tabs. Follow those labels precisely — NEVER guess or distribute artists over days yourself. If a day cannot be determined for an artist, put them on the first day rather than inventing a spread.',
+  'Stage names often appear as a header line directly above a group of artists (e.g. "The Beach (Vrijdag)" or "Main Stage"). Assign the artists below such a header to that stage until the next header.',
   'Dutch day abbreviations: DO=Thursday, VR=Friday, ZA=Saturday, ZO=Sunday, WO=Wednesday, MA=Monday, DI=Tuesday.',
   'If only a lineup without times is shown, still list the artists and use empty strings for times.',
   'If stages are unknown, use a single stage named "Main".',
@@ -106,7 +108,7 @@ export async function extractEventFromText(pageText: string, hint?: string): Pro
     input: [
       hint ? `Event hint: ${hint}` : '',
       'Extract the timetable from this page content:',
-      pageText.slice(0, 60_000),
+      pageText.slice(0, 120_000),
     ].join('\n\n'),
     schema: EXTRACTION_SCHEMA,
     schemaName: 'event_timetable',
@@ -199,19 +201,28 @@ export async function searchEventCandidates(query: string): Promise<EventCandida
 
 // ─── Page text extraction ─────────────────────────────────────────────────────
 
-/**
- * Fetch a page and convert it to text while PRESERVING line structure —
- * day labels next to artist names must stay on adjacent lines, otherwise
- * the model can't associate artists with the right day.
- */
-export async function fetchPageText(url: string): Promise<string> {
+const PAGE_FETCH_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml',
+} as const;
+
+// Last path segment of a per-day lineup page, e.g. /line-up/vrijdag or /timetable/day-2
+const DAY_PATH_SEGMENT =
+  /^(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|monday|tuesday|wednesday|thursday|friday|saturday|sunday|(?:day|dag)[-_]?\d{1,2})\/?$/i;
+
+const MAX_DAY_PAGES = 7;
+
+interface FetchedPage {
+  url: string;
+  text: string;
+  dayLinks: string[];
+}
+
+async function fetchPage(url: string): Promise<FetchedPage> {
   const cheerio = await import('cheerio');
   const res = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml',
-    },
+    headers: PAGE_FETCH_HEADERS,
     redirect: 'follow',
     signal: AbortSignal.timeout(15_000),
   });
@@ -222,12 +233,39 @@ export async function fetchPageText(url: string): Promise<string> {
   const html = await res.text();
   const $ = cheerio.load(html);
   $('script, style, noscript, svg, iframe').remove();
+  // Image-heavy lineup pages often carry stage/artist names only in alt text
+  // (e.g. <img alt="The Beach (Vrijdag)">) — surface those as text lines
+  $('img[alt]').each((_, el) => {
+    const alt = $(el).attr('alt')?.trim();
+    if (alt && alt.length > 1) {
+      $(el).replaceWith($('<span>').text(alt));
+    }
+  });
   $('br').replaceWith('\n');
   $('div, p, li, h1, h2, h3, h4, h5, h6, section, article, tr, figcaption, a, span').each(
     (_, el) => {
       $(el).append('\n');
     },
   );
+
+  // Sibling per-day pages (festivals often split the lineup over
+  // /line-up/vrijdag, /line-up/zaterdag, ...) — collect them so the import
+  // can crawl the whole event instead of a single day
+  const dayLinks: string[] = [];
+  $('a[href]').each((_, el) => {
+    const href = $(el).attr('href');
+    if (!href) return;
+    try {
+      const resolved = new URL(href, url);
+      if (resolved.origin !== new URL(url).origin) return;
+      const lastSegment = resolved.pathname.split('/').filter(Boolean).pop() ?? '';
+      if (!DAY_PATH_SEGMENT.test(lastSegment)) return;
+      const normalized = `${resolved.origin}${resolved.pathname.replace(/\/+$/, '')}`;
+      if (!dayLinks.includes(normalized)) dayLinks.push(normalized);
+    } catch {
+      // unparseable href — skip
+    }
+  });
 
   const title = $('title').text().trim();
   const text = $('body')
@@ -236,7 +274,41 @@ export async function fetchPageText(url: string): Promise<string> {
     .replace(/ ?\n ?/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-  return `${title}\n\n${text}`;
+  return { url, text: `${title}\n\n${text}`, dayLinks };
+}
+
+/**
+ * Fetch a lineup page AND its sibling per-day pages (e.g. /line-up/vrijdag →
+ * also zaterdag/zondag), merged into one text with "=== PAGINA: url ===" headers
+ * so the extraction model can anchor each section to the right day.
+ *
+ * Page text PRESERVES line structure — day labels next to artist names must
+ * stay on adjacent lines, otherwise the model can't associate artists with
+ * the right day.
+ */
+export async function fetchEventPagesText(url: string): Promise<string> {
+  const mainPage = await fetchPage(url);
+  const normalizedMain = `${new URL(url).origin}${new URL(url).pathname.replace(/\/+$/, '')}`;
+
+  const siblingUrls = mainPage.dayLinks
+    .filter((link) => link !== normalizedMain)
+    .slice(0, MAX_DAY_PAGES - 1);
+  if (siblingUrls.length === 0) {
+    return mainPage.text;
+  }
+
+  const siblingPages = await Promise.all(
+    siblingUrls.map(async (link) => {
+      try {
+        return await fetchPage(link);
+      } catch {
+        return null; // one broken day page must not sink the whole import
+      }
+    }),
+  );
+
+  const pages = [mainPage, ...siblingPages.filter((page): page is FetchedPage => page !== null)];
+  return pages.map((page) => `=== PAGINA: ${page.url} ===\n\n${page.text}`).join('\n\n');
 }
 
 // ─── Transform extracted data into the app's LineupData ──────────────────────

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getValidTokens } from '@/lib/spotify';
 import {
   extractEventFromText,
-  fetchPageText,
+  fetchEventPagesText,
   transformExtractedToLineup,
 } from '@/lib/lineup-extract';
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const pageText = await fetchPageText(parsedUrl.toString());
+    const pageText = await fetchEventPagesText(parsedUrl.toString());
     if (pageText.length < 200) {
       return NextResponse.json(
         { error: 'Deze pagina bevat te weinig leesbare tekst. Probeer een screenshot.' },
