@@ -344,6 +344,57 @@ async function fetchPage(url: string): Promise<FetchedPage> {
   return { url, text: pageText, dayLinks };
 }
 
+// Nav paths that typically lead to a lineup page on a festival site
+const LINEUP_PATH_HINT = /(line-?up|artiest|artists?|acts|program|timetable|affiche|schedule)/i;
+
+/**
+ * AI search results sometimes guess a path that doesn't exist (e.g. /lineup
+ * while the site uses /artists). When the URL 404s, fetch the site root and
+ * follow its most likely lineup link instead.
+ */
+async function repairViaSiteRoot(url: string): Promise<FetchedPage | null> {
+  try {
+    const origin = new URL(url).origin;
+    const cheerio = await import('cheerio');
+    const res = await fetch(origin, {
+      headers: PAGE_FETCH_HEADERS,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return null;
+
+    const $ = cheerio.load(await res.text());
+    const candidates: string[] = [];
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href');
+      if (!href) return;
+      try {
+        const resolved = new URL(href, origin);
+        if (resolved.origin !== origin) return;
+        if (!LINEUP_PATH_HINT.test(resolved.pathname)) return;
+        const normalized = `${resolved.origin}${resolved.pathname.replace(/\/+$/, '')}`;
+        if (!candidates.includes(normalized)) candidates.push(normalized);
+      } catch {
+        // unparseable href — skip
+      }
+    });
+
+    // Shortest path first: the lineup overview, not /lineup/<artist> detail pages
+    const sorted = [...candidates].sort((a, b) => a.length - b.length);
+    for (const candidate of sorted.slice(0, 2)) {
+      try {
+        const page = await fetchPage(candidate);
+        if (page.text.length >= MIN_READABLE_CHARS) return page;
+      } catch {
+        // try the next candidate
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fetch a lineup page AND its sibling per-day pages (e.g. /line-up/vrijdag →
  * also zaterdag/zondag), merged into one text with "=== PAGINA: url ===" headers
@@ -354,8 +405,16 @@ async function fetchPage(url: string): Promise<FetchedPage> {
  * the right day.
  */
 export async function fetchEventPagesText(url: string): Promise<string> {
-  const mainPage = await fetchPage(url);
-  const normalizedMain = `${new URL(url).origin}${new URL(url).pathname.replace(/\/+$/, '')}`;
+  let mainPage: FetchedPage;
+  try {
+    mainPage = await fetchPage(url);
+  } catch (err) {
+    const repaired = await repairViaSiteRoot(url);
+    if (!repaired) throw err;
+    mainPage = repaired;
+  }
+  const mainUrl = new URL(mainPage.url);
+  const normalizedMain = `${mainUrl.origin}${mainUrl.pathname.replace(/\/+$/, '')}`;
 
   const siblingUrls = mainPage.dayLinks
     .filter((link) => link !== normalizedMain)
